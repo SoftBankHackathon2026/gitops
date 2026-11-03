@@ -180,3 +180,18 @@ Windows에서 kubectl 연결이 안 되면: `kubectl config set-cluster k3d-crys
 **카나리 분석이 로컬에서도 돌려면** 그 클러스터에 Argo Rollouts가 설치돼 있어야 합니다. `AnalysisTemplate`은 Application의 두 번째 source인 `analysis/default`에서 함께 배포합니다.
 
 로컬은 `api-ok`만 사용하는 `analysis/default`를 선택합니다. Prometheus가 없는 환경에서 AWS의 `analysis/prometheus`를 선택하면 분석이 실패할 수 있습니다.
+
+## 현재 조직의 저장소 연결
+
+Argo CD Application의 repoURL은 `https://github.com/SoftBankHackathon2026/gitops.git`이다. review-service의 intake 대상은 `SoftBankHackathon2026/sample-app`이다. 검토 서비스의 실제 소스는 원본 `Crystal-SBHackathon2026/review-service`에 있다.
+
+기존 GHCR 이미지 태그는 공개 manifest를 확인했다. sample-app은 현재 조직 CI가 새 이미지를 push한 뒤 base Kustomization의 newName/newTag를 갱신한다. review-service 이미지와 독립 loadgen의 고정 이미지는 새 이미지가 확인되기 전까지 유지한다. 과거 PR/이슈 링크는 기록의 실제 위치이므로 일괄 치환하지 않는다.
+
+마이그레이션 데이터 토픽은 공유 브로커 기본값에 맡기지 않는다. Kafka CLI가 설치된 관리 환경에서 아래처럼 작업별로 생성한다. 실제 접속값·인증 파일·복제 계수는 사용하는 브로커에 맞춘다.
+
+```bash
+KAFKA_BOOTSTRAP='<reachable-brokers>' TOPIC_PREFIX=forward_001 REPLICATION_FACTOR=1 \
+  bash scripts/create-migration-topic.sh
+```
+
+MSK 두 브로커 구성이면 요구에 맞는 복제 계수(예: 2)를 지정한다. 인증이 필요하면 `KAFKA_COMMAND_CONFIG`로 클라이언트 속성 파일을 지정한다. 귀환에는 `return_001` 등 새 prefix를 사용한다. 이미 존재하는 토픽의 파티션 수가 1이 아니면 스크립트는 중단한다. 이 스크립트는 connector 자체를 배포하지 않는다.

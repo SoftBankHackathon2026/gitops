@@ -31,10 +31,10 @@ spec:
   # gcp 만 블루그린이다 — overlay 를 머지한 뒤에 이 파일을 처음 적용한다 (overlay 주석 참고).
   # 🔴 분석 경로가 환경마다 다르다 — Prometheus 가 있는 곳만 에러율 지표를 켠다 (#24).
   sources:
-    - repoURL: https://github.com/Crystal-SBHackathon2026/gitops.git
+    - repoURL: https://github.com/SoftBankHackathon2026/gitops.git
       targetRevision: main
       path: apps/sample-app/overlays/gcp
-    - repoURL: https://github.com/Crystal-SBHackathon2026/gitops.git
+    - repoURL: https://github.com/SoftBankHackathon2026/gitops.git
       targetRevision: main
       path: apps/sample-app/analysis/default
   destination:
