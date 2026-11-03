@@ -1,0 +1,30 @@
+# Argo CD Application: INSERT 워커 (초당 1건을 현재 활성 DB 에 쓰는 단일 인스턴스).
+#
+# 🔴 선행 조건: Secret migration-db-credentials (app_password 키), 그리고
+#    migration-db-init 가 migration_demo DB 와 migration_app 역할을 만들어 둔 상태.
+#    DB 가 없으면 워커는 readiness 를 통과하지 못하고 재시도만 한다.
+#
+# ⚠️ 이 Application 을 지우면(finalizer) 워커의 요청 기록 PVC 도 같이 지워진다.
+#    기록을 남기고 싶으면 지우기 전에 PVC 를 백업하거나 Application 에서 finalizer 를 뺀다.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: db-insert-worker
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: hackathon
+  source:
+    repoURL: https://github.com/SoftBankHackathon2026/gitops.git
+    targetRevision: main
+    path: apps/db-insert-worker
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: hackathon
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=false

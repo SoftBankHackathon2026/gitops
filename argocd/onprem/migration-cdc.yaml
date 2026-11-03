@@ -1,0 +1,31 @@
+# Argo CD Application: Debezium 기반 Kafka Connect (PG Source + JDBC Sink 플러그인 포함).
+#
+# 매니페스트는 Connect 워커(Deployment·Service·설정)만 둔다. 커넥터 등록(forward_001 등)은
+# 도구(migration.cdc)가 REST 8083 으로 하므로 여기 없다 — 커넥터 설정은 Kafka 내부 토픽
+# migration-connect-configs 에 남는다.
+#
+# 🔴 선행 조건: Secret migration-db-credentials (cdc_password·sink_password 키).
+#    migration-db-init 가 역할을 만든 뒤에 올려야 커넥터가 DB 에 붙는다. Connect 워커
+#    자체는 DB 없이도 뜨므로 순서가 바뀌어도 파드는 정상이고 커넥터 등록만 실패한다.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: migration-cdc
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: hackathon
+  source:
+    repoURL: https://github.com/SoftBankHackathon2026/gitops.git
+    targetRevision: main
+    path: apps/migration-cdc
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: hackathon
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=false

@@ -1,0 +1,40 @@
+# Argo CD Application: sample-app 을 온프렘 k3s(oneport-onprem) 의 hackathon 네임스페이스에 배포한다.
+#
+# 이 디렉터리(argocd/onprem)는 루트 Application(app-of-apps)이 디렉터리 소스로 읽는다.
+# 루트 앱 등록 절차와 선행 조건은 README.md 에 있다.
+#
+# 🔴 손으로 등록돼 있던 hackathon-sample-app Application 과 같은 리소스(Rollout·Service)를
+#    관리한다. 둘이 함께 있으면 SharedResourceWarning 이 나고 서로 되돌린다.
+#    이 파일이 Synced 가 된 뒤 hackathon-sample-app 은 지운다 (README.md 참고).
+#
+# destination 은 server 로 쓴다. 온프렘 Argo CD 가 자기 클러스터에 배포하므로
+# kubernetes.default.svc 가 맞고, AppProject hackathon 도 그 server 만 허용한다.
+# (argocd/sample-app-local.yaml 이 name: crystal-busan 을 쓰는 것과 다른 클러스터다.)
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: sample-app-onprem
+  namespace: argocd
+  # 루트 앱이 이 파일을 지우면(prune) 배포된 리소스도 같이 지운다. 없으면 고아로 남는다.
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: hackathon
+  # 소스가 둘이다. overlay 와 분석 템플릿을 따로 둔다 — base/kustomization.yaml 의 설명 참고.
+  sources:
+    - repoURL: https://github.com/SoftBankHackathon2026/gitops.git
+      targetRevision: main
+      path: apps/sample-app/overlays/onprem
+    - repoURL: https://github.com/SoftBankHackathon2026/gitops.git
+      targetRevision: main
+      path: apps/sample-app/analysis/onprem
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: hackathon
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      # 네임스페이스는 이미 있고, AppProject 가 클러스터 스코프 리소스를 금지한다.
+      - CreateNamespace=false

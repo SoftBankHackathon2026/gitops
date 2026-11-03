@@ -1,0 +1,31 @@
+# Argo CD Application: migration_demo 데이터베이스와 역할을 만드는 일회성 Job.
+#
+# 동작: apps/migration-db-init 의 Job 은 Sync 훅이다. 이 Application 이 sync 될 때마다
+# 실행된다 (처음 등록, ConfigMap 변경, 또는 `argocd app sync migration-db-init` 수동 실행).
+# 초기화 도구(migration.init_db)는 멱등이라 여러 번 돌아도 같은 결과여야 한다.
+#
+# 🔴 선행 조건: Secret migration-db-credentials 가 hackathon 네임스페이스에 있어야 한다.
+#    없으면 Job 파드가 CreateContainerConfigError 로 멈추고 sync 가 실패한다.
+#    만드는 법은 apps/migration-db-init/README.md.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: migration-db-init
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: hackathon
+  source:
+    repoURL: https://github.com/SoftBankHackathon2026/gitops.git
+    targetRevision: main
+    path: apps/migration-db-init
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: hackathon
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=false

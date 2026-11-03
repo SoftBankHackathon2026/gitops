@@ -1,0 +1,14 @@
+# Connect REST API. 도구(migration.cdc)가 http://migration-connect.hackathon.svc.cluster.local:8083 으로 커넥터를 등록·조회한다.
+# 클러스터 밖으로 열지 않는다 — 관리 포트를 인터넷에 공개하지 않는다 (01-DB-이전-계획.md).
+apiVersion: v1
+kind: Service
+metadata:
+  name: migration-connect
+  labels:
+    app.kubernetes.io/name: migration-connect
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: migration-connect
+  ports:
+    - {name: http, port: 8083, targetPort: http}

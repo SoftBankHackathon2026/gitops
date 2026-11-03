@@ -37,10 +37,10 @@ spec:
   # 소스가 둘이다. overlay 는 렌더러가 만드는 생성물이고, 분석은 손으로 관리한다.
   # 🔴 분석 경로가 환경마다 다르다 — Prometheus 가 있는 곳만 에러율 지표를 켠다 (#24).
   sources:
-    - repoURL: https://github.com/Crystal-SBHackathon2026/gitops.git
+    - repoURL: https://github.com/SoftBankHackathon2026/gitops.git
       targetRevision: main
       path: apps/sample-app/overlays/local
-    - repoURL: https://github.com/Crystal-SBHackathon2026/gitops.git
+    - repoURL: https://github.com/SoftBankHackathon2026/gitops.git
       targetRevision: main
       path: apps/sample-app/analysis/default
   destination:

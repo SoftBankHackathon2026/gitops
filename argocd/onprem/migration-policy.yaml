@@ -1,0 +1,26 @@
+# Argo CD Application: OPA 정책 서비스 (이전 단계별 허용·보류·거절 판정).
+#
+# 선행 조건 없음 — 정책은 이미지에 들어 있고 Secret·DB 를 쓰지 않는다.
+# 실행 제어기가 이 서비스 없이는 어떤 단계도 실행하지 않으므로(fail-closed) db-insert-worker 보다 먼저 떠 있어야 조용하다.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: migration-policy
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: hackathon
+  source:
+    repoURL: https://github.com/SoftBankHackathon2026/gitops.git
+    targetRevision: main
+    path: apps/migration-policy
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: hackathon
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=false
