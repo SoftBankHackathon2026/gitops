@@ -1,0 +1,15 @@
+# OPA 정책 서비스 (온프렘 k3s, hackathon 네임스페이스). 이전 실행 제어기가 단계 직전에 판정을 묻는다.
+# Argo CD Application: argocd/onprem/migration-policy.yaml
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: hackathon
+commonLabels:
+  app.kubernetes.io/part-of: migration
+resources:
+  - deployment.yaml
+  - service.yaml
+images:
+  - name: ghcr.io/softbankhackathon2026/migration-policy
+    # 자리표시자. Hackathon 저장소 policies/ 의 CI 가 커밋 SHA 로 바꾸거나, 사람이 고정한다.
+    # 정책 버전 = 이 태그. 클러스터에서 정책 파일을 손으로 바꾸지 않는다.
+    newTag: main
