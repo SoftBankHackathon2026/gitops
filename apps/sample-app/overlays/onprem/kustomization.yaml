@@ -1,0 +1,27 @@
+# 온프렘 k3s(oneport-onprem) 의 hackathon 네임스페이스용 overlay.
+#
+# 2026-11-03 까지는 Argo CD 에 손으로 등록한 Application(hackathon-sample-app)이
+# base 를 직접 가리키고 인라인 kustomize 패치로 같은 내용을 넣고 있었다.
+# 그 패치를 저장소 파일로 옮긴 것이다 — argocd/onprem/sample-app.yaml 이 가져간다.
+#
+# overlays/local 과 다른 점
+#   - 네임스페이스가 sample-app 이 아니라 hackathon 이다 (AppProject hackathon 이 hackathon 만 허용).
+#   - Ingress 가 없다. 온프렘 클러스터에서는 클러스터 안 Service 로만 본다.
+# 🔴 AnalysisTemplate 은 여기 없다. ../../analysis/onprem 을 Application 의 두 번째 소스로 가져간다.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: hackathon
+resources:
+  - ../../base
+patches:
+  - target:
+      kind: Rollout
+      name: sample-app
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/env
+        value:
+          - name: DEPLOY_ENV
+            value: local
+          - name: DEPLOY_REGION
+            value: busan-local

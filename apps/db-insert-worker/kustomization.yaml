@@ -1,0 +1,16 @@
+# INSERT 워커 (온프렘 k3s, hackathon 네임스페이스). 초당 1건을 현재 활성 DB 에 쓴다.
+# Argo CD Application: argocd/onprem/db-insert-worker.yaml
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: hackathon
+commonLabels:
+  app.kubernetes.io/part-of: migration
+resources:
+  - configmap.yaml
+  - pvc.yaml
+  - deployment.yaml
+  - service.yaml
+images:
+  - name: ghcr.io/softbankhackathon2026/migration-tools
+    # 자리표시자. Hackathon 저장소 migration/ 의 CI 가 커밋 SHA 로 바꾸거나, 사람이 고정한다.
+    newTag: main

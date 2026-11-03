@@ -1,0 +1,80 @@
+# Kafka Connect 워커 1개 (distributed 모드). PG Source 와 JDBC Sink 플러그인이 이미지에 들어 있다.
+#
+# 영속 볼륨이 없다. 커넥터 설정·offset·상태는 Kafka 내부 토픽(configmap.yaml)에 있어서
+# 파드가 다시 떠도 이어진다. replicas 는 1 — 워커가 둘이면 같은 group.id 로 묶여 task 를 나눠 갖지만
+# 데모에서 순서를 관찰하기 쉽게 하나로 둔다.
+#
+# 커넥터 등록은 여기 없다. 도구(migration.cdc)가 REST 8083 으로 한다.
+#
+# 🔴 readOnlyRootFilesystem 을 켜지 않았다. 이미지 entrypoint 가 시작할 때 /kafka/config 의
+#    properties 를 sed 로 고쳐 쓰고 /kafka/logs 에 쓴다. 이미지는 임의 UID 가 /kafka 에 쓸 수 있게
+#    chmod 돼 있어 runAsUser 1001(이미지의 kafka 사용자) 로 돌린다.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: migration-connect
+  labels:
+    app.kubernetes.io/name: migration-connect
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate  # 옛 워커가 남아 있으면 그룹 재조정이 두 번 난다. 하나씩 바꾼다
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: migration-connect
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: migration-connect
+    spec:
+      terminationGracePeriodSeconds: 60
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        runAsGroup: 1001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: connect
+          image: ghcr.io/softbankhackathon2026/migration-connect
+          imagePullPolicy: Always
+          ports:
+            - {name: http, containerPort: 8083}
+          envFrom:
+            - configMapRef:
+                name: migration-connect
+          env:
+            # 다른 워커가 이 워커로 요청을 넘길 때 쓰는 주소. 워커가 하나라도 자기 자신을 올바로 가리켜야 한다.
+            - name: ADVERTISED_HOST_NAME
+              valueFrom:
+                fieldRef: {fieldPath: status.podIP}
+            # 커넥터 설정이 ${env:MIGRATION_CDC_PASSWORD} / ${env:MIGRATION_SINK_PASSWORD} 로 읽는다.
+            - name: MIGRATION_CDC_PASSWORD
+              valueFrom:
+                secretKeyRef: {name: migration-db-credentials, key: cdc_password}
+            - name: MIGRATION_SINK_PASSWORD
+              valueFrom:
+                secretKeyRef: {name: migration-db-credentials, key: sink_password}
+          # JVM 과 플러그인 스캔에 시간이 걸린다. 최대 5분까지 기다린다.
+          startupProbe:
+            httpGet: {path: /, port: http}
+            periodSeconds: 10
+            failureThreshold: 30
+          readinessProbe:
+            httpGet: {path: /connectors, port: http}
+            periodSeconds: 10
+            timeoutSeconds: 5
+          livenessProbe:
+            httpGet: {path: /, port: http}
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          # 힙 -Xmx1g + 메타스페이스·스레드·소켓 버퍼. 상한 1.5Gi 안에서 돈다.
+          resources:
+            requests: {cpu: 100m, memory: 768Mi}
+            limits: {cpu: "1", memory: 1.5Gi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities: {drop: [ALL]}

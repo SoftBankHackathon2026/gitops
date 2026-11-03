@@ -1,0 +1,14 @@
+# 워커의 요청 기록(영속 대기열). 요청을 DB 에 보내기 전에 먼저 여기 적는다 — 01-DB-이전-계획.md "INSERT 워커 동작".
+#
+# local-path 는 노드 디스크다. 파드는 PV 가 있는 노드에만 뜨고, 그 노드가 죽으면 기록도 같이 없어진다.
+# 데모 구성이라 받아들인다. RWO 라 Deployment 도 Recreate 로 한 번에 하나만 뜬다.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: db-insert-worker-state
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 1Gi

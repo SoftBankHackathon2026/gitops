@@ -1,0 +1,101 @@
+# INSERT 워커. 초당 1건(WORKER_RATE)을 현재 활성 DB(WORKER_TARGET)에 쓴다.
+#
+# 단일 실행이 전제다. 같은 request_id 를 두 워커가 동시에 보내면 안 되므로
+#   - replicas 1
+#   - strategy Recreate (새 파드가 뜨기 전에 옛 파드를 먼저 내린다)
+#   - 요청 기록 PVC 가 RWO (한 노드·한 파드만 마운트)
+# 세 겹으로 막는다.
+#
+# HTTP 8080: /healthz(프로브), /status(현재 대상·대기열·지연), /metrics(Prometheus 형식).
+# 전환 도구(migration.cutover)가 이 포트로 "전환 대기 → 재연결 → 재개" 를 지시한다.
+#
+# 🔴 이미지 ENTRYPOINT 가 `python -m` 이라 args 에 모듈 이름만 준다.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: db-insert-worker
+  labels:
+    app.kubernetes.io/name: db-insert-worker
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: db-insert-worker
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: db-insert-worker
+    spec:
+      # 진행 중 트랜잭션과 대기열 flush 를 기다린다. 워커가 SIGTERM 을 받으면 새 요청을 멈추고 정리해야 한다.
+      terminationGracePeriodSeconds: 30
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        # 이미지(Hackathon/migration/Dockerfile)의 USER migration = uid 10001
+        runAsUser: 10001
+        runAsGroup: 10001
+        # local-path 는 hostPath 기반이라 fsGroup 소유권 변경이 적용되지 않을 수 있다.
+        # local-path-provisioner 가 디렉터리를 0777 로 만들어 UID 10001 이 쓸 수 있다.
+        fsGroup: 10001
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: worker
+          image: ghcr.io/softbankhackathon2026/migration-tools
+          imagePullPolicy: Always
+          args: ["migration.loadgen"]
+          ports:
+            - {name: http, containerPort: 8080}
+          env:
+            # 접속 대상·사용자는 config.yaml(targets.*)에서 읽고, 비밀번호만 password_env 로 받는다.
+            - name: MIGRATION_APP_PASSWORD
+              valueFrom:
+                secretKeyRef: {name: migration-db-credentials, key: app_password}
+            - name: WORKER_RATE
+              value: "1"
+            # 데모 한 번의 식별자. 새로 시작할 때 바꾼다 (요청 기록의 run_id 컬럼).
+            - name: WORKER_RUN_ID
+              value: forward_001
+            # 시작 구간. 전환 뒤에는 도구가 aws_live / onprem_return 으로 바꾼다.
+            - name: WORKER_PHASE
+              value: onprem_live
+            - name: WORKER_TARGET
+              value: onprem
+            - name: WORKER_STATE_DIR
+              value: /var/lib/worker
+            - name: MIGRATION_CONFIG
+              value: /etc/migration/config.yaml
+          volumeMounts:
+            - {name: state, mountPath: /var/lib/worker}
+            - {name: config, mountPath: /etc/migration, readOnly: true}
+            - {name: tmp, mountPath: /tmp}
+          # DB 에 붙기 전에는 Ready 가 아니다. 워커가 /healthz 에서 그 상태를 구분해야 한다.
+          readinessProbe:
+            httpGet: {path: /healthz, port: http}
+            periodSeconds: 5
+            timeoutSeconds: 3
+          livenessProbe:
+            httpGet: {path: /healthz, port: http}
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          resources:
+            requests: {cpu: 50m, memory: 64Mi}
+            limits: {cpu: 250m, memory: 256Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+      volumes:
+        - name: state
+          persistentVolumeClaim:
+            claimName: db-insert-worker-state
+        - name: config
+          configMap:
+            name: migration-config
+        - name: tmp
+          emptyDir: {}

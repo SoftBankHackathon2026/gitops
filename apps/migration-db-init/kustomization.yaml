@@ -1,0 +1,15 @@
+# migration_demo 데이터베이스·테이블·역할을 만드는 일회성 초기화 (온프렘 k3s, hackathon 네임스페이스).
+# Argo CD Application: argocd/onprem/migration-db-init.yaml
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: hackathon
+commonLabels:
+  app.kubernetes.io/part-of: migration
+resources:
+  - configmap.yaml
+  - job.yaml
+  # secret.example.yaml 은 일부러 넣지 않는다. 값은 팀원이 kubectl 로 만든다 (README.md).
+images:
+  - name: ghcr.io/softbankhackathon2026/migration-tools
+    # 자리표시자. Hackathon 저장소 migration/ 의 CI 가 커밋 SHA 로 바꾸거나, 사람이 고정한다.
+    newTag: main
