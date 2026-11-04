@@ -45,7 +45,7 @@ spec:
     spec:
       containers:
         - name: sample-app
-          image: ghcr.io/crystal-sbhackathon2026/sample-app
+          image: ghcr.io/softbankhackathon2026/sample-app
           ports:
             - containerPort: 8080
           env:

@@ -21,7 +21,7 @@ spec:
       terminationGracePeriodSeconds: 60
       containers:
         - name: worker
-          image: ghcr.io/crystal-sbhackathon2026/review-worker
+          image: ghcr.io/softbankhackathon2026/review-worker
           ports:
             - {name: metrics, containerPort: 9100}  # prometheus_client /metrics (METRICS_PORT)
           envFrom:
