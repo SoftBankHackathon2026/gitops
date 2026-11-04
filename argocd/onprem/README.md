@@ -39,6 +39,8 @@ kubectl -n hackathon create secret generic migration-db-credentials \
 
 이 저장소는 둘 중 어느 쪽도 결정하지 않는다. 어느 쪽이든 자식 네 개의 파일은 바뀌지 않는다.
 
+> 2026-11-03: 관리자가 첫 번째 방법(destination `argocd` 추가)으로 처리했고, 루트 앱은 `hackathon-root` 이름으로 등록돼 있다.
+
 ### 3. 루트 Application 등록
 
 ```bash
@@ -69,6 +71,8 @@ ROOT
 위 예시는 이 디렉터리에 두지 않았다. 루트 앱이 자기 자신을 관리하면 삭제가 꼬인다.
 
 ### 4. 손으로 등록한 `hackathon-sample-app` 정리
+
+> 2026-11-03 완료. cascade 없이 지웠고, 그 앱에만 있던 알림 annotation 은 `sample-app.yaml` 로 옮겼다.
 
 `sample-app-onprem` 이 Synced·Healthy 가 된 것을 확인한 뒤 옛 Application 을 지운다. 둘이 같은 Rollout·Service 를 관리하면 SharedResourceWarning 이 나고 selfHeal 이 서로를 되돌린다.
 
