@@ -37,16 +37,42 @@ data:
             user: migration_verify
             password_env: MIGRATION_VERIFY_PASSWORD
 
+      onprem_return:
+        # AWS→온프렘 귀환 대상. 정방향 원본(migration_demo)과 같은 인스턴스의 분리된 빈 DB.
+        # 귀환 cutover 가 워커 /target 으로 이 이름을 보내므로 여기 없으면 SWITCHING 에서 NEEDS_RECOVERY 가 된다.
+        host: postgres
+        port: 5432
+        dbname: migration_demo_return
+        sslmode: require
+        admin_dbname: postgres
+        users:
+          admin:
+            user: oneaction_admin
+            password_env: MIGRATION_ADMIN_PASSWORD
+          app:
+            user: migration_app
+            password_env: MIGRATION_APP_PASSWORD
+          cdc:
+            user: migration_cdc
+            password_env: MIGRATION_CDC_PASSWORD
+          sink:
+            user: migration_sink
+            password_env: MIGRATION_SINK_PASSWORD
+          verify:
+            user: migration_verify
+            password_env: MIGRATION_VERIFY_PASSWORD
+
       aws:
         # 미확정. oneaction-infra 가 RDS 주소를 정하면 바꾼다 (k3s→AWS 사설 경로도 그때 확정).
         host: oneaction-review-db.cdb6j7l51obe.ap-northeast-2.rds.amazonaws.com
+        kind: rds                 # RDS: REPLICATION 속성 대신 rds_replication 역할. init_db·cutover 가 참고한다
         port: 5432
         dbname: migration_demo
         sslmode: require
         admin_dbname: postgres
         users:
           admin:
-            user: postgres
+            user: oneaction_admin     # oneaction-infra RDS 마스터 계정
             password_env: MIGRATION_AWS_ADMIN_PASSWORD
           app:
             user: migration_app

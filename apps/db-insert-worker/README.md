@@ -27,7 +27,7 @@ service.yaml      HTTP 8080 — /healthz /status /metrics
 
 ## 미확정 값
 
-- `config.yaml` 의 `targets.aws.host` 는 `REPLACE_WITH_AWS_DB_HOST` 자리표시자다. oneaction-infra 쪽 결정 뒤 바꾼다.
+- `config.yaml` 의 `targets.aws.host` 는 새 계정 RDS(`oneaction-review-db.cdb6j7l51obe.ap-northeast-2.rds.amazonaws.com`)다.
 - `config.yaml` 의 키 구조는 이 저장소 쪽 제안이다. `migration/` 구현이 다른 키를 읽으면 그쪽에 맞춘다.
 - 실행 UID 1000. 이미지가 `/var/lib/worker` 와 `/tmp` 외에 쓰는 곳이 있으면 `readOnlyRootFilesystem` 때문에 실패한다 — 그때는 emptyDir 를 더 붙인다.
 
