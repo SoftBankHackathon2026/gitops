@@ -1,0 +1,13 @@
+# 실행 제어기·관리 API 가 쓰는 판정 포트. 네임스페이스 밖에 노출하지 않는다.
+apiVersion: v1
+kind: Service
+metadata:
+  name: migration-policy
+  labels:
+    app.kubernetes.io/name: migration-policy
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: migration-policy
+  ports:
+    - {name: http, port: 8181, targetPort: http}
