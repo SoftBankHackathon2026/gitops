@@ -6,12 +6,12 @@ kind: ConfigMap
 metadata:
   name: review-service
 data:
-  DB_HOST: oneaction-review-db.cfwu8m0qiqk1.ap-northeast-2.rds.amazonaws.com
+  DB_HOST: oneaction-review-db.cdb6j7l51obe.ap-northeast-2.rds.amazonaws.com
   DB_PORT: "5432"
   DB_NAME: oneaction_review
   DB_SSLMODE: require  # RDS 파라미터 그룹이 rds.force_ssl=1
   # Terraform infra/msk output bootstrap_brokers (PLAINTEXT, 9092). Private EKS 서브넷에서만 열려 있다
-  KAFKA_BOOTSTRAP: "b-1.oneactionreview.lf4qfu.c4.kafka.ap-northeast-2.amazonaws.com:9092,b-2.oneactionreview.lf4qfu.c4.kafka.ap-northeast-2.amazonaws.com:9092"
+  KAFKA_BOOTSTRAP: "b-1.oneactionreview.ol7uyc.c2.kafka.ap-northeast-2.amazonaws.com:9092,b-2.oneactionreview.ol7uyc.c2.kafka.ap-northeast-2.amazonaws.com:9092"
   REVIEW_LLM_MODEL: claude-sonnet-5-5
   GITHUB_CI_APP_SLUG: github-actions
   # baseline 이 없는 레포의 deploy.yaml 생성·복구(intake)에서 쓸 배포 대상 (env/region)
@@ -19,6 +19,6 @@ data:
   # baseline 이 없어도 deploy.yaml '없음'을 intake 로 볼 레포(새 앱). 조직 웹훅이라 목록 밖 레포의 파일 없는 PR 은 skip
   INTAKE_REPOSITORIES: SoftBankHackathon2026/sample-app
   # PR 커밋 상태(review-service/intake)의 링크 /intakes/{id} 앞부분
-  REVIEW_API_PUBLIC_URL: http://oneaction-alb-2039760505.ap-northeast-2.elb.amazonaws.com
+  REVIEW_API_PUBLIC_URL: http://oneaction-alb-1793674336.ap-northeast-2.elb.amazonaws.com
   # 워커의 사례·가이드 의미 검색 (qdrant.yaml). 비우면 규칙 문서 파일 검색만 쓴다
   QDRANT_URL: http://qdrant:6333
