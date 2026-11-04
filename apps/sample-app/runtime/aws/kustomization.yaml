@@ -1,0 +1,27 @@
+# sample-app AWS 최종 층 (wrapper). 사람이 관리한다.
+#
+# 🔴 overlays/aws 안에 두지 않았다. overlays/aws 는 review-service 렌더러가
+# 앱 레포 deploy.yaml 에서 다시 만드는 생성물이라, 손으로 넣은 것은 다음 렌더에
+# 지워진다(apps/loadgen/aws 와 같은 이유). 렌더러는 컨테이너를 통째로 새로
+# 만들고 Secret 이름을 <app>-secrets 로 고정하며 ConfigMap·Secret volume 을
+# 표현하지 못한다. 그래서 DB 연결·TLS CA·제어 파일은 여기서 넣는다.
+#
+# 적용 순서 — 뒤 층이 앞 층을 덮는다.
+#   1. ../../base          Rollout·Service·제어 ConfigMap (onprem·local 공통 값)
+#   2. ../../overlays/aws  렌더러 생성물 (namespace·replicas·env·probe·Ingress)
+#   3. 이 디렉터리         DB Secret·CA·제어 파일 env·mount, readiness timeout,
+#                          AWS 제어 초기값
+#
+# rollout-runtime.yaml 의 첫 두 op 는 test 다. 렌더러가 컨테이너 구조를 바꾸거나
+# storage volume 을 만들면 build 가 실패해, mount 가 조용히 빠진 채 배포되지 않는다.
+# Argo CD Application argocd/sample-app-aws.yaml 이 이 경로를 가져간다.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../overlays/aws
+patches:
+  - target:
+      kind: Rollout
+      name: sample-app
+    path: rollout-runtime.yaml
+  - path: control-aws.yaml

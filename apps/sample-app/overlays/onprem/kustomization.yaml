@@ -25,3 +25,39 @@ patches:
             value: local
           - name: DEPLOY_REGION
             value: busan-local
+          # 플랫폼 Postgres 는 pg_hba 가 hostssl 만 허용하고 self-signed 인증서(SAN: postgres,
+          # postgres.hackathon.svc.cluster.local)를 쓴다. 앱의 require 도 인증서를 검증하므로
+          # verify-full + 서버 인증서를 CA 로 준다 (Secret sample-app-db-ca, key ca.pem = postgres-tls 의 tls.crt).
+          - name: PGSSLMODE
+            value: verify-full
+          - name: PGSSLROOTCERT
+            value: /db-ca/ca.pem
+          - name: DATABASE_URL
+            valueFrom:
+              secretKeyRef:
+                name: sample-app-db
+                key: database-url
+          - name: FAIL_RATE
+            value: '0'
+          - name: APP_CONTROL_FILE
+            value: /app-control/control.json
+          # Secret 이 없으면 pod 는 뜨고 /api/requests 만 503 으로 닫힌다.
+          # 온프렘은 ClusterIP 만 있고 공개 진입점이 없다. 트래픽 봇이 http://sample-app.svc 로 붙어야 하는데
+          # 봇은 토큰이 있으면 https 가 아닌 진입점을 거절하므로(INSECURE_TOKEN_TRANSPORT) 온프렘은 open 으로 둔다.
+          # 공개 진입점(HTTPS)이 생기면 required + sample-app-api-token 으로 되돌린다.
+          - name: REQUEST_API_AUTH
+            value: optional
+      - op: replace
+        path: /spec/template/spec/containers/0/readinessProbe/httpGet/path
+        value: /readyz
+      - op: add
+        path: /spec/template/spec/containers/0/volumeMounts/-
+        value: {name: db-ca, mountPath: /db-ca, readOnly: true}
+      - op: add
+        path: /spec/template/spec/volumes/-
+        value:
+          name: db-ca
+          secret:
+            secretName: sample-app-db-ca
+            items:
+              - {key: ca.pem, path: ca.pem}

@@ -1,0 +1,75 @@
+# JSON6902 patch. Rollout 은 CRD 라 kustomize 가 containers·env 의 병합 키를
+# 모른다. strategic merge 를 쓰면 리스트가 통째로 바뀔 수 있어 쓰지 않는다.
+#
+# 렌더러 출력 구조 계약 (깨지면 build 실패):
+#   - 컨테이너 0번 이름이 sample-app 이다.
+#   - pod volumes 가 base 의 control 하나뿐이다. 렌더러는 deploy.yaml 에
+#     storage 가 있으면 volumes 를 통째로 바꾸므로, 그때는 아래 mount 를
+#     다시 설계해야 한다.
+- op: test
+  path: /spec/template/spec/containers/0/name
+  value: sample-app
+- op: test
+  path: /spec/template/spec/volumes
+  value:
+    - name: control
+      configMap:
+        name: sample-app-control
+- op: add
+  path: /spec/template/spec/containers/0/env/-
+  value:
+    name: DATABASE_URL
+    valueFrom:
+      secretKeyRef:
+        name: sample-app-db
+        key: database-url
+- op: add
+  path: /spec/template/spec/containers/0/env/-
+  value:
+    name: PGSSLMODE
+    value: verify-full
+- op: add
+  path: /spec/template/spec/containers/0/env/-
+  value:
+    name: PGSSLROOTCERT
+    value: /db-ca/ca.pem
+- op: add
+  path: /spec/template/spec/containers/0/env/-
+  value:
+    name: APP_CONTROL_FILE
+    value: /app-control/control.json
+# 요청 API 인증. Secret 이 없으면 pod 는 뜨고 /api/requests 만 503 으로
+# 닫힌다(sample-app docs/deployment.md 요청 API 인증 절).
+- op: add
+  path: /spec/template/spec/containers/0/env/-
+  value:
+    name: REQUEST_API_AUTH
+    value: required
+- op: add
+  path: /spec/template/spec/containers/0/env/-
+  value:
+    name: REQUEST_API_TOKEN
+    valueFrom:
+      secretKeyRef:
+        name: sample-app-api-token
+        key: token
+        optional: true
+# 렌더러가 만든 컨테이너에는 volumeMounts 가 없다. 배열을 새로 만든다.
+- op: add
+  path: /spec/template/spec/containers/0/volumeMounts
+  value:
+    - name: control
+      mountPath: /app-control
+      readOnly: true
+    - name: db-ca
+      mountPath: /db-ca
+      readOnly: true
+- op: add
+  path: /spec/template/spec/containers/0/readinessProbe/timeoutSeconds
+  value: 3
+- op: add
+  path: /spec/template/spec/volumes/-
+  value:
+    name: db-ca
+    secret:
+      secretName: sample-app-db-ca
