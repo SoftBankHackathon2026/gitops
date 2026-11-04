@@ -1,21 +1,8 @@
 # 온프렘 k3s 의 hackathon 네임스페이스용 분석 템플릿.
-#
-# ../default 를 그대로 쓰되 두 가지를 덮어쓴다.
-#   1. 네임스페이스: default 는 sample-app 으로 박혀 있는데, AppProject hackathon 은
-#      hackathon 네임스페이스만 허용한다. 그대로 두면 Argo CD 가 sync 를 거부한다.
-#   2. 분석 URL: web 프로바이더는 argo-rollouts 컨트롤러 파드에서 실행되므로 FQDN 이
-#      필요하고, 그 FQDN 의 네임스페이스도 hackathon 이어야 한다.
+# ../default(web 프로바이더)를 패치하지 않고 Job 프로바이더 템플릿을 따로 둔다. 이유는 analysistemplate.yaml 머리말.
 # ../default 자체는 로컬·GCP 가 쓰고 있어 손대지 않는다.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: hackathon
 resources:
-  - ../default
-patches:
-  - target:
-      kind: AnalysisTemplate
-      name: sample-app-health
-    patch: |-
-      - op: replace
-        path: /spec/metrics/0/provider/web/url
-        value: http://sample-app.hackathon.svc.cluster.local/api/info
+  - analysistemplate.yaml
