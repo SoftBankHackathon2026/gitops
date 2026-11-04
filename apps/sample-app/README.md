@@ -128,8 +128,10 @@ localhost 바인딩을 보장하지 않는다. k3d를 `-p "8081:80@loadbalancer"
 만들면 모든 인터페이스에 열려 같은 LAN에서 익명 쓰기가 된다
 ([argocd/install/README.md](../../argocd/install/README.md) 참고).
 `-p "127.0.0.1:8081:80@loadbalancer"`로 만들고, 공개 진입점이나 공유망에
-연결하지 않는다. gcp overlay는 바꾸지 않았고, `base/rollout.yaml`은 이미지
-경로만 바꿨다.
+연결하지 않는다. 인증 env는 gcp overlay, `base/rollout.yaml`, argocd에 넣지
+않았다. gcp overlay는 이 PR 전체에서 바뀌지 않았다. 다만 PR 전체로는
+`base/rollout.yaml`의 이미지 경로·control volume·readiness timeout과
+`argocd/sample-app-aws.yaml`의 소스 경로(`runtime/aws`)가 바뀌었다.
 
 wrapper와 onprem의 `REQUEST_API_AUTH`·`REQUEST_API_TOKEN`이 빠지는 회귀를
 막는 자동 시험은 이 저장소에 없다. gitops 저장소에는 CI가 없어서다. 지금은
