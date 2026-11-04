@@ -40,3 +40,11 @@ kubectl -n hackathon exec deploy/db-insert-worker -- python -c \
 ```
 
 멈추려면 `kubectl -n hackathon scale deploy/db-insert-worker --replicas=0`. Argo CD selfHeal 이 1 로 되돌리므로 오래 끌 거면 Application 을 지우거나 이 파일의 replicas 를 바꿔 커밋한다.
+
+## 리허설 (AWS 없이 전체 사이클)
+
+`migration-config` 의 두 번째 키 `config.rehearsal.yaml` 은 같은 Postgres 안의 빈 DB `migration_demo_rehearsal`(target `rehearsal`)을
+대상으로 `rehearsal_001` 작업을 정의한다. 워커 파드에 `/etc/migration/config.rehearsal.yaml` 로 마운트되므로 그 파드에서
+`python -m migration.init_db|cdc|cutover|verify --config /etc/migration/config.rehearsal.yaml` 을 돌린다(관리자 비밀번호는
+실행 시 환경변수로만 준다). 워커가 `rehearsal` target 을 알려면 ConfigMap 반영 뒤 워커 파드를 한 번 재시작한다.
+RDS 가 생기면 `config.yaml`(forward_001, 대상 aws)로 같은 절차를 반복한다.
