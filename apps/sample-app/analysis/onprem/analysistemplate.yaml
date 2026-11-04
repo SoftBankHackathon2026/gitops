@@ -26,24 +26,26 @@ spec:
                 automountServiceAccountToken: false
                 securityContext:
                   runAsNonRoot: true
-                  runAsUser: 100
-                  runAsGroup: 101
+                  runAsUser: 1000
+                  runAsGroup: 1000
                   seccompProfile:
                     type: RuntimeDefault
                 containers:
                   - name: check
-                    image: curlimages/curl:8.11.1
+                    # curlimages/curl 파드는 이 클러스터에서 TCP 연결이 전부 실패했다(원인 미상, 2026-11-05).
+                    # 같은 조건에서 sample-app 이미지(node:22-alpine, BusyBox wget)는 정상이라 그 이미지를 쓴다.
+                    image: docker.io/kty1021/sample-app:51d1b031e111df3241e57e7c6c05447942628e63
                     command:
                       - sh
                       - -c
                       - |
                         set -eu
-                        body=$(curl -fsS --max-time 5 http://sample-app.hackathon.svc.cluster.local/api/info)
+                        body=$(wget -q -O - -T 5 http://sample-app.hackathon.svc.cluster.local/api/info)
                         echo "$body" | head -c 300; echo
                         echo "$body" | grep -q '"app":"sample-app"'
                     resources:
-                      requests: {cpu: 10m, memory: 16Mi}
-                      limits: {cpu: 100m, memory: 64Mi}
+                      requests: {cpu: 10m, memory: 32Mi}
+                      limits: {cpu: 100m, memory: 128Mi}
                     securityContext:
                       allowPrivilegeEscalation: false
                       readOnlyRootFilesystem: true
