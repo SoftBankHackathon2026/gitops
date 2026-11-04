@@ -25,3 +25,17 @@ patches:
             value: local
           - name: DEPLOY_REGION
             value: busan-local
+          - name: PGSSLMODE
+            value: disable
+          - name: DATABASE_URL
+            valueFrom:
+              secretKeyRef:
+                name: sample-app-db
+                key: database-url
+          - name: FAIL_RATE
+            value: '0'
+          - name: APP_CONTROL_FILE
+            value: /app-control/control.json
+      - op: replace
+        path: /spec/template/spec/containers/0/readinessProbe/httpGet/path
+        value: /readyz

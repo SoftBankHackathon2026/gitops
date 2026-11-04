@@ -1,5 +1,4 @@
-# 생성 파일 — review-service overlay 렌더러가 deploy_spec 에서 만든다.
-# 손으로 고치지 말고 앱 레포의 deploy.yaml 을 고친다.
+# Team Ghost finals ALB ingress.
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -7,9 +6,9 @@ metadata:
   annotations:
     alb.ingress.kubernetes.io/scheme: internet-facing
     alb.ingress.kubernetes.io/target-type: ip
-    alb.ingress.kubernetes.io/healthcheck-path: /healthz
+    alb.ingress.kubernetes.io/healthcheck-path: /readyz
     alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}]'
-    alb.ingress.kubernetes.io/tags: Project=oneaction,Owner=seongjin.lee,Env=dev
+    alb.ingress.kubernetes.io/tags: Project=ghost-hackathon,Env=finals
 spec:
   ingressClassName: alb
   rules:
