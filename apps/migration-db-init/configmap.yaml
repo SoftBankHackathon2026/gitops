@@ -42,13 +42,14 @@ data:
       aws:
         # 미확정. oneaction-infra 가 RDS 주소를 정하면 바꾼다 (k3s→AWS 사설 경로도 그때 확정).
         host: REPLACE_WITH_AWS_DB_HOST
+        kind: rds                 # RDS: REPLICATION 속성 대신 rds_replication 역할. init_db·cutover 가 참고한다
         port: 5432
         dbname: migration_demo
         sslmode: require
         admin_dbname: postgres
         users:
           admin:
-            user: postgres
+            user: oneaction_admin     # oneaction-infra RDS 마스터 계정
             password_env: MIGRATION_AWS_ADMIN_PASSWORD
           app:
             user: migration_app
