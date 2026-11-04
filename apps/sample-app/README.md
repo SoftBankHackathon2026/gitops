@@ -63,16 +63,25 @@ ALB tags는 렌더러 카탈로그 값(`Project=oneaction,…,Env=dev`)이다. �
 
 ## 이미지와 CI
 
-이미지는 `ghcr.io/softbankhackathon2026/sample-app`이다.
-CI는 이미지를 먼저 푸시한 뒤 아래 파일의 해당 이미지 `newTag`만 갱신한다.
+이미지는 Docker Hub 공개 저장소 `docker.io/kty1021/sample-app`이다.
+amd64·arm64를 묶은 커밋 SHA 태그만 쓰고 `latest`는 쓰지 않는다. 공개
+저장소라 imagePullSecrets는 없다.
+sample-app CI는 두 arch를 스캔·게시한 뒤 아래 파일의 해당 이미지 `newTag`만
+갱신한다. main의 이 파일이 아직 Docker Hub 경로가 아니면 태그를 바꾸지 않고
+실패한다.
 
 ```text
 apps/sample-app/base/kustomization.yaml
 ```
 
-`newTag`의 초기 값은 복제한 기존 앱 커밋이다. 새 DB 모듈을 포함한 이미지가
-실제로 GHCR에 푸시된 뒤 그 커밋으로 갱신해야 한다. 이 브랜치의 설정만
-먼저 적용하면 새 readiness API를 제공하지 않는 이미지가 배포될 수 있다.
+`newTag`의 초기 값은 새 DB 모듈과 인증을 포함한 앱 커밋
+`dda34482ed5106e90e7bcce358015e8cda0f7002`다. 이 태그는 2026-11-04 Docker
+Hub 공개 저장소에 게시됐고, 로그인 없이 index와 두 arch의 manifest·config를
+받을 수 있음을 확인했다. amd64·arm64를 묶은 index digest는
+`sha256:4e219077ff61e90dab00762e81e1ab97bc4344b06a9dc9af2f9ec19aade0f41b`다.
+CI가 아니라 손으로 게시한 부트스트랩 이미지이며, 다음 태그부터는 병합 뒤
+sample-app main CI가 갱신한다. 클러스터에서 실제로 pull하지는 않았다.
+GHCR에만 있던 옛 태그는 Docker Hub에 없다.
 
 ## DB 준비
 
@@ -114,9 +123,18 @@ POST·GET은 Bearer 토큰이 필요하고, 화면·`/healthz`·`/readyz`·`/api
 또는 401로 막히고, 봇은 `http://` 진입점에 토큰을 보내지 않고 시작을
 거절한다(fail-closed).
 
-`overlays/local`은 k3d localhost 개발 전용이라 인증 env를 넣지 않았다(open).
-공개 진입점에 연결하지 않는다. gcp overlay와 `base/rollout.yaml`은 바꾸지
-않았다.
+`overlays/local`은 개발용이라 인증 env를 넣지 않았다(open). 매니페스트는
+localhost 바인딩을 보장하지 않는다. k3d를 `-p "8081:80@loadbalancer"`로
+만들면 모든 인터페이스에 열려 같은 LAN에서 익명 쓰기가 된다
+([argocd/install/README.md](../../argocd/install/README.md) 참고).
+`-p "127.0.0.1:8081:80@loadbalancer"`로 만들고, 공개 진입점이나 공유망에
+연결하지 않는다. gcp overlay는 바꾸지 않았고, `base/rollout.yaml`은 이미지
+경로만 바꿨다.
+
+wrapper와 onprem의 `REQUEST_API_AUTH`·`REQUEST_API_TOKEN`이 빠지는 회귀를
+막는 자동 시험은 이 저장소에 없다. gitops 저장소에는 CI가 없어서다. 지금은
+변경 때 `kubectl kustomize`로 두 env가 한 번씩 있는지 직접 확인한다. 자동
+검사 추가는 후속 작업이며 담당자는 김태윤이다.
 
 토큰 파일에는 32자 이상 b64token 하나만 넣고 끝에 줄바꿈을 두지 않는다. 값을
 명령행 literal로 넣거나 출력하지 않는다. 봇은 `hackathon` namespace라 온프렘과

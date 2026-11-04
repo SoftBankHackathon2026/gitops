@@ -185,7 +185,15 @@ Windows에서 kubectl 연결이 안 되면: `kubectl config set-cluster k3d-crys
 
 Argo CD Application의 repoURL은 `https://github.com/SoftBankHackathon2026/gitops.git`이다. review-service의 intake 대상은 `SoftBankHackathon2026/sample-app`이다. 검토 서비스의 실제 소스는 원본 `Crystal-SBHackathon2026/review-service`에 있다.
 
-기존 GHCR 이미지 태그는 공개 manifest를 확인했다. sample-app은 현재 조직 CI가 새 이미지를 push한 뒤 base Kustomization의 newName/newTag를 갱신한다. review-service 이미지와 독립 loadgen의 고정 이미지는 새 이미지가 확인되기 전까지 유지한다. 과거 PR/이슈 링크는 기록의 실제 위치이므로 일괄 치환하지 않는다.
+기존 GHCR 이미지 태그는 공개 manifest를 확인했다. sample-app이 Docker Hub로
+옮기기 전의 기록이다. sample-app 이미지는 이제 Docker Hub 공개 저장소
+`docker.io/kty1021/sample-app`의 커밋 전체 SHA 태그다. 첫 태그
+`dda34482ed5106e90e7bcce358015e8cda0f7002`는 손으로 게시한 부트스트랩
+이미지다. 이후에는 sample-app CI가 새 이미지를 push한 뒤 base Kustomization의
+newTag를 갱신한다. 자세한 내용은
+[apps/sample-app/README.md](apps/sample-app/README.md)에 있다. review-service
+이미지와 독립 loadgen의 고정 이미지는 새 이미지가 확인되기 전까지 유지한다.
+과거 PR/이슈 링크는 기록의 실제 위치이므로 일괄 치환하지 않는다.
 
 마이그레이션 데이터 토픽은 공유 브로커 기본값에 맡기지 않는다. Kafka CLI가 설치된 관리 환경에서 아래처럼 작업별로 생성한다. 실제 접속값·인증 파일·복제 계수는 사용하는 브로커에 맞춘다.
 
