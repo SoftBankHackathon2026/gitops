@@ -8,8 +8,8 @@
 #
 # 종료 코드: 0 모든 필수 항목 통과, 1 실패 항목 있음, 2 설정 오류.
 #
-# 🔴 선행 조건: Secret migration-return-aws-admin 을 손으로 만든다. 값은 자리표시자다.
-#   kubectl -n hackathon create secret generic migration-return-aws-admin \
+# 🔴 선행 조건: Secret migration-aws-admin 을 손으로 만든다. 값은 자리표시자다.
+#   kubectl -n hackathon create secret generic migration-aws-admin \
 #     --from-literal=password='<RDS 마스터 계정 비밀번호>'
 #
 # 관리자 계정으로만 조회하므로 비밀번호 env 는 둘이면 된다.
@@ -44,7 +44,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: precheck
-          image: ghcr.io/softbankhackathon2026/migration-tools:main
+          image: ghcr.io/softbankhackathon2026/migration-tools:2bdcacfc3d737b32376e53df65472c3462ed54f0
           imagePullPolicy: Always
           # 이미지 ENTRYPOINT 가 `python -m` 이다.
           args:
@@ -59,7 +59,7 @@ spec:
                 secretKeyRef: {name: review-db-credentials, key: password}
             - name: MIGRATION_AWS_ADMIN_PASSWORD
               valueFrom:
-                secretKeyRef: {name: migration-return-aws-admin, key: password}
+                secretKeyRef: {name: migration-aws-admin, key: password}
           volumeMounts:
             - {name: return-config, mountPath: /etc/migration-return, readOnly: true}
             - {name: forward-config, mountPath: /etc/migration-forward, readOnly: true}
@@ -80,7 +80,7 @@ spec:
         # 정방향 설정. apps/db-insert-worker 가 관리하는 ConfigMap 을 읽기만 한다.
         - name: forward-config
           configMap:
-            name: migration-config
+            name: migration-db-init
             items:
               - {key: config.yaml, path: config.yaml}
         - name: tmp
