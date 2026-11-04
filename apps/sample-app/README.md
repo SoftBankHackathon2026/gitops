@@ -223,3 +223,13 @@ kubectl kustomize apps/sample-app/analysis/onprem
 Argo Rollouts·AnalysisTemplate CRD, 각 클러스터 등록, Prometheus, Secret과
 실제 접속·권한은 렌더 성공만으로 검증되지 않는다. Argo CD에 내장된 kustomize
 버전에서 JSON6902 `test`가 동작하는지도 클러스터에서 확인하지 않았다.
+
+## 온프렘 실제 값 (2026-11-05, 가연)
+
+- 플랫폼 Postgres 는 `hostssl` 만 허용하고 self-signed 인증서(SAN `postgres`, `postgres.hackathon.svc.cluster.local`)를 쓴다.
+  앱의 `require` 도 인증서를 검증하므로 온프렘은 `PGSSLMODE=verify-full` + `PGSSLROOTCERT=/db-ca/ca.pem` 이고,
+  Secret `sample-app-db-ca` 의 `ca.pem` 은 Secret `postgres-tls` 의 `tls.crt` 를 그대로 복사한 것이다.
+- `DATABASE_URL` 은 `postgresql://migration_app:<migration-db-credentials.app_password>@postgres.hackathon.svc.cluster.local:5432/migration_demo`.
+  테이블·역할은 `migration-db-init` 이 만든다. 앱은 테이블을 만들지 않는다.
+- 요청 API 인증은 온프렘에서 `optional`(open)이다. 공개 진입점이 없고 트래픽 봇이 ClusterIP 로 붙어야 하기 때문이다.
+  봇 선언은 `apps/traffic-bot/`(Argo `traffic-bot`), 토큰 없이 돈다.

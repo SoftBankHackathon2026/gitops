@@ -6,6 +6,7 @@
 configmap.yaml        비밀 아닌 설정 (DB·역할·작업 이름, config.yaml). 이게 바뀌면 Job 이 다시 돈다
 job.yaml              Argo CD Sync 훅 Job. migration.init_db --target onprem
 secret.example.yaml   Secret 키 목록. 값은 넣지 않는다
+job-aws.manual.yaml   수동 Job. migration.init_db --target aws (RDS 생긴 뒤 사람이 apply, Argo 는 안 읽음)
 ```
 
 ## 선행 조건 — Secret 을 먼저 만든다
@@ -40,3 +41,9 @@ kubectl -n hackathon logs job/migration-db-init
 | 접속 | config.yaml `targets.onprem` (host postgres, admin_dbname postgres, users.admin.user oneaction_admin), `MIGRATION_ADMIN_PASSWORD` ← `review-db-credentials`/`password` |
 | 역할 비밀번호 | `MIGRATION_APP_PASSWORD`, `MIGRATION_CDC_PASSWORD`, `MIGRATION_SINK_PASSWORD`, `MIGRATION_VERIFY_PASSWORD` ← `migration-db-credentials` |
 | 실행 UID | 1000 (`runAsUser`). 이미지가 어떤 USER 로 빌드되든 이 UID 로 돈다 — 홈 디렉터리 쓰기에 의존하면 안 된다 |
+
+## AWS(RDS) 쪽 초기화 — 수동
+
+RDS 는 VPC·Tailscale 경로가 생긴 뒤에만 닿으므로 Sync 훅으로 두지 않는다. `job-aws.manual.yaml` 머리말의 순서대로
+Secret `migration-aws-admin`(key `password`, RDS 마스터 비밀번호)을 만들고 직접 apply 한다. 같은 Secret 이름을
+귀환 사전 점검 Job(`apps/migration-return/job-precheck.manual.yaml`)도 쓴다.

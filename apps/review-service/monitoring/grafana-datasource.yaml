@@ -26,7 +26,7 @@ spec:
             - name: review-db
               uid: review-db  # 대시보드가 이 uid 로 찾는다
               type: grafana-postgresql-datasource
-              url: oneaction-review-db.cfwu8m0qiqk1.ap-northeast-2.rds.amazonaws.com:5432
+              url: oneaction-review-db.cdb6j7l51obe.ap-northeast-2.rds.amazonaws.com:5432
               user: grafana_ro
               editable: false
               jsonData:
