@@ -51,7 +51,7 @@ spec:
             - {name: tmp, mountPath: /tmp}
         - name: indexer
           # 이미지 태그는 kustomization images 의 review-worker 를 따라간다 (review-service CI 가 갱신)
-          image: ghcr.io/crystal-sbhackathon2026/review-worker
+          image: ghcr.io/softbankhackathon2026/review-worker
           command: ["sh", "-c"]
           args:
             - python -m review_ai.retrieval.indexer --qdrant-url http://localhost:6333 --wait 120 && exec sleep infinity

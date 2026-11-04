@@ -12,8 +12,8 @@ resources:
   - targetgroupbinding.yaml  # 플랫폼 ALB(oneaction-alb) → platform-tg → Service platform:8080
   - monitoring  # ServiceMonitor·Grafana 대시보드·데이터소스 (monitoring/README.md)
 images:
-  - name: ghcr.io/crystal-sbhackathon2026/review-api
+  - name: ghcr.io/softbankhackathon2026/review-api
     # review-service CI(update-gitops)가 main 커밋 SHA 로 자동 갱신한다
-    newTag: 3f874c80b4edb4b42aece883d0727422a7ccff47
-  - name: ghcr.io/crystal-sbhackathon2026/review-worker
-    newTag: 3f874c80b4edb4b42aece883d0727422a7ccff47
+    newTag: 743fc9a4aa4156c8e9b8e63dc08b1fe9f2349a11
+  - name: ghcr.io/softbankhackathon2026/review-worker
+    newTag: 743fc9a4aa4156c8e9b8e63dc08b1fe9f2349a11

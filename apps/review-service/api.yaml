@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: api
-          image: ghcr.io/crystal-sbhackathon2026/review-api
+          image: ghcr.io/softbankhackathon2026/review-api
           ports:
             - name: http
               containerPort: 8080
