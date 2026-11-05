@@ -44,7 +44,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: precheck
-          image: ghcr.io/softbankhackathon2026/migration-tools:2bdcacfc3d737b32376e53df65472c3462ed54f0
+          image: ghcr.io/softbankhackathon2026/migration-tools:67005b5ea644787d6641e0b9648436f0be8db389
           imagePullPolicy: Always
           # 이미지 ENTRYPOINT 가 `python -m` 이다.
           args:

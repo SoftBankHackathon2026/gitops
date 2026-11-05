@@ -18,7 +18,7 @@ data:
     targets:
       aws:
         # 미확정. oneaction-infra 가 RDS 주소를 정하면 바꾼다 (k3s→AWS 사설 경로도 그때 확정).
-        host: REPLACE_WITH_AWS_DB_HOST
+        host: oneaction-review-db.cdb6j7l51obe.ap-northeast-2.rds.amazonaws.com
         kind: rds                 # RDS: REPLICATION 속성 대신 rds_replication 역할. init_db·cutover 가 참고한다
         port: 5432
         dbname: migration_demo
