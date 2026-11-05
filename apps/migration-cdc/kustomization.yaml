@@ -9,6 +9,7 @@ resources:
   - configmap.yaml
   - deployment.yaml
   - service.yaml
+  - platform-access.yaml  # Oneport 플랫폼 수집기용 노드 포트 (AWS → Tailscale)
 images:
   - name: ghcr.io/softbankhackathon2026/migration-connect
     # 자리표시자. Hackathon 저장소 migration/ 의 CI 가 커밋 SHA 로 바꾸거나, 사람이 고정한다.

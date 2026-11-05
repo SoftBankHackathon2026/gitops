@@ -1,0 +1,35 @@
+# Oneport 플랫폼 수집기(AWS EKS)가 Tailscale 경로로 커넥터 상태(GET /connectors/<job>-(source|sink)/status)를 읽도록
+# 노드 포트를 연다. Connect 파드는 어느 노드에서든 뜰 수 있어 externalTrafficPolicy 기본값(Cluster)을 쓴다.
+# 수집기는 http://172.30.1.10:30883 을 본다.
+# Kafka Connect REST 는 인증이 없다. 노드 포트는 LAN·tailnet 에서만 닿게 두고 공유기에서 외부로 열지 않는다.
+# 플랫폼 설정: Hackathon platform/deploy/aws/fleet.json 의 connect_url
+apiVersion: v1
+kind: Service
+metadata:
+  name: migration-connect-external
+spec:
+  type: NodePort
+  selector:
+    app.kubernetes.io/name: migration-connect
+  ports:
+    - {name: http, port: 8083, targetPort: http, nodePort: 30883}
+---
+# default-deny-ingress 위에 노드 포트 경로만 연다. 출발지 설명은 apps/db-insert-worker/platform-access.yaml 과 같다.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-platform-connect-status
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: migration-connect
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - ipBlock: {cidr: 172.30.1.0/24}
+        - ipBlock: {cidr: 10.42.0.0/32}
+        - ipBlock: {cidr: 10.42.0.1/32}
+        - ipBlock: {cidr: 10.42.1.0/32}
+        - ipBlock: {cidr: 10.42.1.1/32}
+      ports:
+        - {port: 8083, protocol: TCP}
