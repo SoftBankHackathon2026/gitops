@@ -28,11 +28,14 @@ spec:
       containers:
         - name: openbao
           image: quay.io/openbao/openbao:2.7.2
-          args: ["server", "-config=/openbao/config/config.hcl"]
+          # 이미지 entrypoint 가 /openbao/config 디렉터리를 -config 로 넘긴다. 파일을 또 주면 중복 경고.
+          args: ["server"]
           env:
             - name: BAO_ADDR
               value: http://127.0.0.1:8200
             - name: SKIP_SETCAP
+              value: "true"
+            - name: SKIP_CHOWN
               value: "true"
           ports:
             - name: http
