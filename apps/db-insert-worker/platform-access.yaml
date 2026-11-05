@@ -1,21 +1,27 @@
 # Oneport 플랫폼 수집기(AWS EKS)가 Tailscale 경로로 워커 상태(GET /status)를 읽도록 노드 포트를 연다.
-# 워커는 local-path PV 때문에 k3s-master 에 고정이라 수집기는 http://172.30.1.10:30880 을 본다.
+# 플랫폼 설정: Hackathon platform/deploy/aws/fleet.json 의 worker_url (두 노드 주소를 모두 적는다)
+#
+# externalTrafficPolicy: Local
+#   출발지 IP 를 유지해야 아래 NetworkPolicy 가 LAN 장비와 클러스터 파드를 구분한다.
+#   대신 파드가 있는 노드만 응답한다. 워커는 local-path PV 때문에 k3s-master(172.30.1.10)에 고정이고,
+#   수집기는 응답하는 노드 주소로 넘어간다.
 # 노드 포트는 LAN(172.30.1.0/24)과 그 경로를 받은 tailnet 에서만 닿는다. 공유기에서 외부로 열지 않는다.
-# 플랫폼 설정: Hackathon platform/deploy/aws/fleet.json 의 worker_url
 apiVersion: v1
 kind: Service
 metadata:
   name: db-insert-worker-external
 spec:
   type: NodePort
+  externalTrafficPolicy: Local
   selector:
     app.kubernetes.io/name: db-insert-worker
   ports:
     - {name: http, port: 8080, targetPort: http, nodePort: 30880}
 ---
 # default-deny-ingress 위에 노드 포트 경로만 연다.
-#   172.30.1.0/24 : LAN, 그리고 AWS 에서 온 트래픽(proxmox-exit 가 SNAT)
-#   10.42.N.0/32, 10.42.N.1/32 : 다른 노드로 들어와 kube-proxy 가 SNAT 한 경우의 노드 주소(flannel.1, cni0)
+#   172.30.1.0/24 : LAN 장비, 그리고 AWS 에서 온 트래픽(proxmox-exit 172.30.1.49 가 SNAT)
+#   노드 IP 제외   : 다른 네임스페이스 파드가 노드 IP 로 SNAT 되어 들어오는 경로를 막는다
+# 2026-11-05 실측: LAN 에서는 파드가 있는 노드로 200, default 네임스페이스 파드는 모든 경로 차단.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -27,10 +33,8 @@ spec:
   policyTypes: [Ingress]
   ingress:
     - from:
-        - ipBlock: {cidr: 172.30.1.0/24}
-        - ipBlock: {cidr: 10.42.0.0/32}
-        - ipBlock: {cidr: 10.42.0.1/32}
-        - ipBlock: {cidr: 10.42.1.0/32}
-        - ipBlock: {cidr: 10.42.1.1/32}
+        - ipBlock:
+            cidr: 172.30.1.0/24
+            except: [172.30.1.10/32, 172.30.1.7/32]
       ports:
         - {port: 8080, protocol: TCP}
