@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: openbao-config
+data:
+  # 단일 노드(standalone) · 파일 스토리지. 08 문서 §6 "온프렘 Vault" 자리에 OpenBao 를 쓴다.
+  # TLS 는 클러스터 안 NetworkPolicy 로 대신한다(tls_disable). 외부 노출 없음.
+  config.hcl: |
+    ui = true
+    disable_mlock = true
+    api_addr = "http://openbao.hackathon.svc.cluster.local:8200"
+    cluster_addr = "http://openbao-0.openbao-internal.hackathon.svc.cluster.local:8201"
+
+    listener "tcp" {
+      address         = "0.0.0.0:8200"
+      cluster_address = "0.0.0.0:8201"
+      tls_disable     = 1
+    }
+
+    storage "file" {
+      path = "/openbao/data"
+    }
