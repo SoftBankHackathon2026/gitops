@@ -1,0 +1,13 @@
+# externalTrafficPolicy: Local — 출발지 IP 를 유지해야 NetworkPolicy 가 LAN 장비와 클러스터 파드를 구분한다.
+# 파드가 있는 노드만 응답하므로 플랫폼 수집기는 두 노드 주소를 차례로 시도한다.
+apiVersion: v1
+kind: Service
+metadata:
+  name: platform-status-proxy
+spec:
+  type: NodePort
+  externalTrafficPolicy: Local
+  selector:
+    app.kubernetes.io/name: platform-status-proxy
+  ports:
+    - {name: http, port: 8080, targetPort: http, nodePort: 30880}

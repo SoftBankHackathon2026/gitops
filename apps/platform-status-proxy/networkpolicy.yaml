@@ -1,0 +1,20 @@
+# default-deny-ingress 위에 프록시 포트만 연다.
+#   172.30.1.0/24 : LAN 장비, 그리고 AWS 에서 온 트래픽(proxmox-exit 가 SNAT)
+#   노드 IP 제외   : 다른 네임스페이스 파드가 노드 IP 로 SNAT 되어 들어오는 경로를 막는다
+# 프록시 → 워커·Connect 는 같은 네임스페이스라 기존 allow-same-namespace 로 통과한다.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-platform-status-proxy
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: platform-status-proxy
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - ipBlock:
+            cidr: 172.30.1.0/24
+            except: [172.30.1.10/32, 172.30.1.7/32]
+      ports:
+        - {port: 8080, protocol: TCP}

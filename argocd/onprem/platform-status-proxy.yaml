@@ -1,0 +1,24 @@
+# Argo CD Application: Oneport 플랫폼 수집기용 읽기 전용 상태 프록시.
+# 워커 /status 와 Kafka Connect 커넥터 상태 조회만 노드 포트 30880 으로 내보낸다. 제어 API 는 열지 않는다.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: platform-status-proxy
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: hackathon
+  source:
+    repoURL: https://github.com/SoftBankHackathon2026/gitops.git
+    targetRevision: main
+    path: apps/platform-status-proxy
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: hackathon
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=false
