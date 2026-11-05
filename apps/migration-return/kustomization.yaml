@@ -15,5 +15,5 @@ resources:
   # 돌리는 일이고, 손으로 만드는 Secret migration-aws-admin 이 없으면 sync 까지 실패하기 때문이다.
 images:
   - name: ghcr.io/softbankhackathon2026/migration-tools
-    # 자리표시자. Hackathon 저장소 migration/ 의 CI 가 커밋 SHA 로 바꾸거나, 사람이 고정한다.
+    # main 의 다른 마이그레이션 앱과 같은 커밋으로 고정 (return_precheck 포함)
     newTag: 67005b5ea644787d6641e0b9648436f0be8db389
