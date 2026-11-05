@@ -53,11 +53,11 @@ spec:
             - name: BOT_RUN_ID
               value: ghost_bot_forward_001
             - name: BOT_PHASE
-              value: onprem_live
+              value: aws_live
             - name: BOT_MAX_RECORDS
-              value: '10000'
+              value: '100000'
             - name: BOT_MAX_LEDGER_BYTES
-              value: '8388608'
+              value: '67108864'
             - name: BOT_RATE
               value: '1'
             - name: BOT_METRICS_PORT
