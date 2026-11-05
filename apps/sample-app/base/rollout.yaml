@@ -45,7 +45,7 @@ spec:
     spec:
       containers:
         - name: sample-app
-          image: ghcr.io/crystal-sbhackathon2026/sample-app
+          image: docker.io/kty1021/sample-app
           ports:
             - containerPort: 8080
           env:
@@ -53,7 +53,12 @@ spec:
               value: base
             - name: DEPLOY_REGION
               value: unknown
+          volumeMounts:
+            - name: control
+              mountPath: /app-control
+              readOnly: true
           readinessProbe:
+            timeoutSeconds: 3
             httpGet:
               path: /healthz
               port: 8080
@@ -70,3 +75,7 @@ spec:
             limits:
               cpu: 250m
               memory: 128Mi
+      volumes:
+        - name: control
+          configMap:
+            name: sample-app-control

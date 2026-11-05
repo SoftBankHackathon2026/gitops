@@ -26,15 +26,10 @@ patches:
         - name: DEPLOY_REGION
           value: ap-northeast-2
         - name: FAIL_RATE
-          value: '0.3'
-        - name: APP_NOTICE
-          valueFrom:
-            secretKeyRef:
-              name: sample-app-secrets
-              key: APP_NOTICE
+          value: '0'
         readinessProbe:
           httpGet:
-            path: /healthz
+            path: /readyz
             port: 8080
           periodSeconds: 5
         livenessProbe:
@@ -45,10 +40,10 @@ patches:
         resources:
           requests:
             cpu: 50m
-            memory: 64Mi
-          limits:
-            cpu: 250m
             memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 256Mi
     - op: copy
       from: /spec/template/spec/containers/0/image
       path: /spec/template/spec/containers/1/image

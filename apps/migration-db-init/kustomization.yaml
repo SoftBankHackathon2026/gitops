@@ -12,4 +12,4 @@ resources:
 images:
   - name: ghcr.io/softbankhackathon2026/migration-tools
     # 자리표시자. Hackathon 저장소 migration/ 의 CI 가 커밋 SHA 로 바꾸거나, 사람이 고정한다.
-    newTag: main
+    newTag: 67005b5ea644787d6641e0b9648436f0be8db389

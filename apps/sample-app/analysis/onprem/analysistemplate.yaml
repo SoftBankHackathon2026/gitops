@@ -1,0 +1,53 @@
+# 온프렘 k3s 용 canary 분석. web 프로바이더는 argo-rollouts 컨트롤러 파드가 직접 HTTP 를 호출하는데,
+# 이 클러스터에서는 컨트롤러(k3s-master)에서 ClusterIP 로 가는 연결이 거부돼 분석이 Error 로 끝났다
+# (2026-11-05 revision 2 abort). 그래서 검사를 hackathon 네임스페이스 안의 Job 으로 돌린다.
+# 검사 내용은 같다: Service 를 거쳐 /api/info 가 200 이고 app 필드가 sample-app 인지.
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: sample-app-health
+spec:
+  args:
+    - name: canary-hash
+  metrics:
+    - name: api-ok
+      count: 3
+      interval: 10s
+      failureLimit: 1
+      provider:
+        job:
+          spec:
+            backoffLimit: 0
+            activeDeadlineSeconds: 60
+            ttlSecondsAfterFinished: 600
+            template:
+              spec:
+                restartPolicy: Never
+                automountServiceAccountToken: false
+                securityContext:
+                  runAsNonRoot: true
+                  runAsUser: 1000
+                  runAsGroup: 1000
+                  seccompProfile:
+                    type: RuntimeDefault
+                containers:
+                  - name: check
+                    # curlimages/curl 파드는 이 클러스터에서 TCP 연결이 전부 실패했다(원인 미상, 2026-11-05).
+                    # 같은 조건에서 sample-app 이미지(node:22-alpine, BusyBox wget)는 정상이라 그 이미지를 쓴다.
+                    image: docker.io/kty1021/sample-app:51d1b031e111df3241e57e7c6c05447942628e63
+                    command:
+                      - sh
+                      - -c
+                      - |
+                        set -eu
+                        body=$(wget -q -O - -T 5 http://sample-app.hackathon.svc.cluster.local/api/info)
+                        echo "$body" | head -c 300; echo
+                        echo "$body" | grep -q '"app":"sample-app"'
+                    resources:
+                      requests: {cpu: 10m, memory: 32Mi}
+                      limits: {cpu: 100m, memory: 128Mi}
+                    securityContext:
+                      allowPrivilegeEscalation: false
+                      readOnlyRootFilesystem: true
+                      capabilities:
+                        drop: [ALL]

@@ -1,0 +1,53 @@
+# OPA 서버 1개. 정책(migration.rego)은 이미지에 들어 있고 상태가 없다.
+#
+# 판정 경로: POST /v1/data/ghost/migration/decision — Hackathon/policies/README.md
+# 🔴 OPA 가 죽어 있으면 실행 제어기는 "error" 로 기록하고 실행하지 않는다 (fail-closed). 가용성 때문에
+#    판정을 건너뛰지 않는다. 그래서 replicas 2 로 둔다 (상태가 없어 늘려도 된다).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: migration-policy
+  labels:
+    app.kubernetes.io/name: migration-policy
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: migration-policy
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: migration-policy
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: opa
+          image: ghcr.io/softbankhackathon2026/migration-policy
+          imagePullPolicy: Always
+          ports:
+            - {name: http, containerPort: 8181}
+          # readiness 는 서버가 요청을 받는지만 본다. OPA 는 정책이 없어도 200 + {} 를 주므로 이 프로브가
+          # 정책 적재를 증명하지는 않는다. 적재 확인은 README 의 policy_version 조회로 한다.
+          # 호출자(policy_client)는 result 없는 200 을 error 로 처리하므로 실행이 열리지는 않는다.
+          readinessProbe:
+            httpGet: {path: /v1/data/ghost/migration/policy_version, port: http}
+            periodSeconds: 10
+            timeoutSeconds: 3
+          livenessProbe:
+            httpGet: {path: /health, port: http}
+            periodSeconds: 30
+            timeoutSeconds: 3
+            failureThreshold: 3
+          resources:
+            requests: {cpu: 25m, memory: 64Mi}
+            limits: {cpu: 250m, memory: 256Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}

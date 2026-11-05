@@ -1,0 +1,13 @@
+# HTTP 트래픽 봇 (sample-app 저장소 packages/traffic-bot). 원본 선언은 sample-app k8s/traffic-bot/bot.yaml 이고
+# 여기서는 온프렘 조건에 맞춰 두 가지만 다르다: BOT_API_TOKEN 없음(앱이 optional/open), base-url 은 ClusterIP.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: hackathon
+commonLabels:
+  app.kubernetes.io/part-of: migration
+resources:
+  - target-configmap.yaml
+  - bot.yaml
+images:
+  - name: docker.io/kty1021/sample-app
+    newTag: 51d1b031e111df3241e57e7c6c05447942628e63

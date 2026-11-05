@@ -1,0 +1,7 @@
+# Stable name: projected ConfigMap updates must reach the app without restart.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sample-app-control
+data:
+  control.json: '{"writes_paused":false}'

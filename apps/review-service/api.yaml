@@ -56,7 +56,7 @@ spec:
             # 배포 진행 화면(/ui/reviews/{id})의 환경별 앱 주소 (review-service#50). http(s) 만 받는다.
             # aws 는 sample-app ingress ADDRESS (10/09 장애 뒤 새로 만든 ALB), local 은 로컬 k3s 의 sample-app 포트(localhost:8081)
             - name: APP_URLS
-              value: '{"sample-app": {"aws": "http://k8s-sampleap-sampleap-88af4f1f82-400100408.ap-northeast-2.elb.amazonaws.com", "local": "http://localhost:8081"}}'
+              value: '{"sample-app": {"aws": "http://k8s-sampleap-sampleap-88af4f1f82-1217388360.ap-northeast-2.elb.amazonaws.com", "local": "http://localhost:8081"}}'
           # readiness 는 DB SELECT 1·Kafka 브로커 연결까지 본다(각 2초, review-service#48). 실패하면 엔드포인트·ALB 타깃에서 빠진다.
           # liveness 는 /healthz 그대로 — DB·Kafka 장애로 파드를 재시작하지 않는다
           readinessProbe:

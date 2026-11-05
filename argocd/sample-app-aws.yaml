@@ -18,12 +18,14 @@ metadata:
     notifications.argoproj.io/subscribe.on-sync-failed.review-api: ""
 spec:
   project: default
-  # 소스가 둘이다. overlay 는 렌더러가 만드는 생성물이고, 분석은 손으로 관리한다.
+  # 소스가 둘이다. 첫 소스는 사람이 관리하는 wrapper(runtime/aws)다. wrapper 가
+  # 렌더러 생성물 overlays/aws 를 읽고 DB·CA·제어 파일 최종 patch 를 적용한다.
+  # 분석은 손으로 관리한다.
   # 🔴 분석 경로가 환경마다 다르다 — Prometheus 가 있는 곳만 에러율 지표를 켠다 (#24).
   sources:
     - repoURL: https://github.com/SoftBankHackathon2026/gitops.git
       targetRevision: main
-      path: apps/sample-app/overlays/aws
+      path: apps/sample-app/runtime/aws
     - repoURL: https://github.com/SoftBankHackathon2026/gitops.git
       targetRevision: main
       path: apps/sample-app/analysis/prometheus

@@ -8,5 +8,5 @@ spec:
   serviceRef:
     name: platform
     port: 8080
-  targetGroupARN: arn:aws:elasticloadbalancing:ap-northeast-2:236550433066:targetgroup/platform-tg/7a134c91b8f670f4
+  targetGroupARN: arn:aws:elasticloadbalancing:ap-northeast-2:974402993422:targetgroup/platform-tg/1927d0766890f375
   targetType: ip
