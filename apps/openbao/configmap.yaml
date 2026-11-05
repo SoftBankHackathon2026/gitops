@@ -3,7 +3,7 @@ kind: ConfigMap
 metadata:
   name: openbao-config
 data:
-  # 단일 노드(standalone) · 파일 스토리지. 08 문서 §6 "온프렘 Vault" 자리에 OpenBao 를 쓴다.
+  # 단일 노드(standalone) · 통합 스토리지(raft, 1 노드). 08 문서 §6 "온프렘 Vault" 자리에 OpenBao 를 쓴다.
   # TLS 는 클러스터 안 NetworkPolicy 로 대신한다(tls_disable). 외부 노출 없음.
   config.hcl: |
     ui = true
@@ -17,6 +17,8 @@ data:
       tls_disable     = 1
     }
 
-    storage "file" {
-      path = "/openbao/data"
+    # OpenBao 2.x 에는 file 백엔드가 없다("unknown storage type file", 2026-11-05 확인). 단일 노드 raft.
+    storage "raft" {
+      path    = "/openbao/data"
+      node_id = "openbao-0"
     }

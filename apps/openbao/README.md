@@ -2,7 +2,7 @@
 
 [08 문서 §6](../../../업무-아젠다/08-AI-에이전트와-샌드박스.md) 의 "온프렘 Vault" 자리. AI 에이전트의 `VaultKvStore`(KV v2) 가 읽고 쓰는 설정 저장소다.
 
-- 단일 노드 StatefulSet(`openbao-0`), 파일 스토리지 PVC 1Gi(local-path), Service `openbao:8200`(ClusterIP, HTTP).
+- 단일 노드 StatefulSet(`openbao-0`), raft 통합 스토리지(1 노드) PVC 1Gi(local-path), Service `openbao:8200`(ClusterIP, HTTP).
 - TLS 없음: 클러스터 밖 노출이 없고 `default-deny-ingress` + `allow-same-namespace` 로 같은 ns 만 접근. 파드 egress 는 DNS 만.
 - 이미지 `quay.io/openbao/openbao` 2.7.2 를 digest 로 고정. `disable_mlock=true`(IPC_LOCK 없이 실행).
 
