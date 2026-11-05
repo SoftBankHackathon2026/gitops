@@ -1,0 +1,15 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: hackathon
+commonLabels:
+  app.kubernetes.io/part-of: oneaction-hackathon
+  app.kubernetes.io/managed-by: kustomize
+resources:
+  - configmap.yaml
+  - service.yaml
+  - statefulset.yaml
+  - networkpolicy.yaml
+images:
+  # quay.io/openbao/openbao:2.7.2 (2026-11-05 확인한 digest). 태그 대신 digest 로 고정한다.
+  - name: quay.io/openbao/openbao
+    digest: sha256:5046911075e137e154ce49ab051502f4ec7cf367d484ae4a4dce665d9b90561f

@@ -1,0 +1,20 @@
+# default-deny-ingress + allow-same-namespace 가 이미 있어 같은 ns 의 파드(ai-agent 등)는 닿는다.
+# 여기서는 OpenBao 파드의 egress 를 막는다: 비밀 저장소가 밖으로 나갈 이유가 없다(DNS 만 허용).
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: openbao-egress
+spec:
+  podSelector:
+    matchLabels:
+      app: openbao
+  policyTypes: ["Egress"]
+  egress:
+    - to:
+        - namespaceSelector: {}
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - {protocol: UDP, port: 53}
+        - {protocol: TCP, port: 53}
