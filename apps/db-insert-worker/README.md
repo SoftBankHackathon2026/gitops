@@ -48,3 +48,14 @@ kubectl -n hackathon exec deploy/db-insert-worker -- python -c \
 `python -m migration.init_db|cdc|cutover|verify --config /etc/migration/config.rehearsal.yaml` 을 돌린다(관리자 비밀번호는
 실행 시 환경변수로만 준다). 워커가 `rehearsal` target 을 알려면 ConfigMap 반영 뒤 워커 파드를 한 번 재시작한다.
 RDS 가 생기면 `config.yaml`(forward_001, 대상 aws)로 같은 절차를 반복한다.
+
+## AWS 실전 (`config.aws.yaml`, 2026-11-05)
+
+리허설 전환(rehearsal_001) 뒤 앱·봇·워커가 모두 `migration_demo_rehearsal` 에 쓰고 있고 `migration_demo` 는
+앱 INSERT 가 차단된 상태라, 실제 AWS 전환은 **원본 `rehearsal` → 대상 `aws`(RDS)** 로 돈다
+(`job_id: forward_001`, `live_phase_before: rehearsal_live`, `live_phase_after: aws_live`).
+`config.yaml`(onprem→aws) 은 `migration_demo` 를 다시 라이브로 되돌릴 때만 쓴다.
+
+```
+python -m migration.cutover --config /etc/migration/config.aws.yaml --state-dir /var/lib/worker run
+```
