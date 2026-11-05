@@ -1,0 +1,87 @@
+# 귀환 사전 점검 (읽기 전용). kustomization 에 넣지 않았고 Argo CD 도 적용하지 않는다. 손으로 실행한다.
+#
+#   kubectl create -f apps/migration-return/job-precheck.manual.yaml
+#   kubectl -n hackathon logs -f job/migration-return-precheck
+#
+# Job 이름이 고정이라 다시 돌리려면 먼저 지운다 (끝난 Job 은 24시간 뒤 자동 삭제).
+#   kubectl -n hackathon delete job migration-return-precheck
+#
+# 종료 코드: 0 모든 필수 항목 통과, 1 실패 항목 있음, 2 설정 오류.
+#
+# 🔴 선행 조건: Secret migration-aws-admin 을 손으로 만든다. 값은 자리표시자다.
+#   kubectl -n hackathon create secret generic migration-aws-admin \
+#     --from-literal=password='<RDS 마스터 계정 비밀번호>'
+#
+# 관리자 계정으로만 조회하므로 비밀번호 env 는 둘이면 된다.
+#   MIGRATION_ADMIN_PASSWORD      온프렘 (귀환 대상, 정방향 원본 슬롯 조회)
+#   MIGRATION_AWS_ADMIN_PASSWORD  AWS (귀환 원본)
+#
+# kustomize 를 거치지 않으므로 이미지 태그·네임스페이스·라벨을 여기에 직접 적는다.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: migration-return-precheck
+  namespace: hackathon
+  labels:
+    app.kubernetes.io/part-of: migration
+spec:
+  backoffLimit: 0
+  activeDeadlineSeconds: 600
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: migration-return-precheck
+        app.kubernetes.io/part-of: migration
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: precheck
+          image: ghcr.io/softbankhackathon2026/migration-tools:67005b5ea644787d6641e0b9648436f0be8db389
+          imagePullPolicy: Always
+          # 이미지 ENTRYPOINT 가 `python -m` 이다.
+          args:
+            - migration.return_precheck
+            - --config
+            - /etc/migration-return/config.yaml
+            - --forward-config
+            - /etc/migration-forward/config.yaml
+          env:
+            - name: MIGRATION_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef: {name: review-db-credentials, key: password}
+            - name: MIGRATION_AWS_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef: {name: migration-aws-admin, key: password}
+          volumeMounts:
+            - {name: return-config, mountPath: /etc/migration-return, readOnly: true}
+            - {name: forward-config, mountPath: /etc/migration-forward, readOnly: true}
+            - {name: tmp, mountPath: /tmp}
+          resources:
+            requests: {cpu: 50m, memory: 64Mi}
+            limits: {cpu: 250m, memory: 256Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+      volumes:
+        - name: return-config
+          configMap:
+            name: migration-return-config
+            items:
+              - {key: config.yaml, path: config.yaml}
+        # 정방향 설정. apps/db-insert-worker 가 관리하는 ConfigMap 을 읽기만 한다.
+        - name: forward-config
+          configMap:
+            name: migration-db-init
+            items:
+              - {key: config.yaml, path: config.yaml}
+        - name: tmp
+          emptyDir: {}

@@ -1,0 +1,81 @@
+# 귀환 대상 빈 DB(migration_demo_return)와 테이블·권한을 만든다. seed 는 넣지 않는다.
+#
+# Argo CD Sync 훅이다. sync 마다 이전 Job 을 지우고 새로 만든다(BeforeHookCreation).
+# Application 이 수동 sync 라 `argocd app sync migration-return` 을 실행할 때만 돈다.
+# 도구(migration.init_db)는 멱등이다. 역할은 정방향과 같은 인스턴스를 쓰므로 같은 Secret 값으로 맞춘다.
+#
+# 🔴 AWS 에는 init_db 를 돌리지 않는다. RDS 가 job.source 이면 init_db 가 ALTER ROLE ... REPLICATION 을
+#    실행해 거부된다. AWS 복제 권한은 Hackathon/migration/sql/return/aws_source_replication.sql 로 대신 준다.
+#
+# 두 Secret 을 쓴다 (둘 다 migration-db-init 과 같다).
+#   review-db-credentials    온프렘 슈퍼유저 (DB 생성 권한)
+#   migration-db-credentials 네 역할의 비밀번호
+#
+# sync-wave 1: ConfigMap(wave 0)이 먼저 적용된 뒤 Job 이 그것을 마운트한다.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: migration-return-init-target
+  annotations:
+    argocd.argoproj.io/hook: Sync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  backoffLimit: 2
+  activeDeadlineSeconds: 600
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: migration-return-init-target
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: init-target
+          image: ghcr.io/softbankhackathon2026/migration-tools
+          imagePullPolicy: Always
+          # 이미지 ENTRYPOINT 가 `python -m` 이다.
+          args: ["migration.init_db", "--target", "onprem_return"]
+          env:
+            # 접속 대상·슈퍼유저 이름은 config.yaml(targets.onprem_return.users.admin)에서 읽는다.
+            - name: MIGRATION_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef: {name: review-db-credentials, key: password}
+            - name: MIGRATION_APP_PASSWORD
+              valueFrom:
+                secretKeyRef: {name: migration-db-credentials, key: app_password}
+            - name: MIGRATION_CDC_PASSWORD
+              valueFrom:
+                secretKeyRef: {name: migration-db-credentials, key: cdc_password}
+            - name: MIGRATION_SINK_PASSWORD
+              valueFrom:
+                secretKeyRef: {name: migration-db-credentials, key: sink_password}
+            - name: MIGRATION_VERIFY_PASSWORD
+              valueFrom:
+                secretKeyRef: {name: migration-db-credentials, key: verify_password}
+            - name: MIGRATION_CONFIG
+              value: /etc/migration-return/config.yaml
+          volumeMounts:
+            - {name: config, mountPath: /etc/migration-return, readOnly: true}
+            - {name: tmp, mountPath: /tmp}
+          resources:
+            requests: {cpu: 50m, memory: 64Mi}
+            limits: {cpu: 250m, memory: 256Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+      volumes:
+        - name: config
+          configMap:
+            name: migration-return-config
+            items:
+              - {key: config.yaml, path: config.yaml}
+        - name: tmp
+          emptyDir: {}
