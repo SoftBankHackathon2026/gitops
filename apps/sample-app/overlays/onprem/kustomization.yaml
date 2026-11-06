@@ -33,10 +33,9 @@ patches:
           - name: PGSSLROOTCERT
             value: /db-ca/ca.pem
           - name: DATABASE_URL
-            valueFrom:
-              secretKeyRef:
-                name: sample-app-db
-                key: database-url
+            # DEMO-09 장애 주입: 존재하지 않는 DB 호스트. 비밀번호 없음 — DNS 단계에서 실패한다.
+            # 카나리 파드가 /readyz 503 으로 Ready 가 되지 않아 트래픽을 받지 못하고 롤아웃이 abort 된다.
+            value: postgresql://migration_app@postgres-wrong.hackathon.svc.cluster.local:5432/migration_demo_return
           - name: FAIL_RATE
             value: '0'
           - name: APP_CONTROL_FILE
