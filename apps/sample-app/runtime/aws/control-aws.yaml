@@ -1,5 +1,5 @@
-# AWS 쓰기 제어 초기값. 대상 DB 쓰기는 닫힌 채 시작한다.
-# 공개 진입점 전환(Notion DB 이전 계획 9단계) 뒤 운영자가 Git 에서 false 로 바꾼다.
+# RDS is the active writer after durable_forward_001.
+# EKS rollout/TLS/auth preflight passed; durable ingress switches separately.
 # base 값(false)은 onprem·local 용이다. 절차는 apps/sample-app/README.md.
 apiVersion: v1
 kind: ConfigMap
@@ -7,4 +7,4 @@ metadata:
   name: sample-app-control
   namespace: sample-app
 data:
-  control.json: '{"writes_paused":true}'
+  control.json: '{"writes_paused":false}'
