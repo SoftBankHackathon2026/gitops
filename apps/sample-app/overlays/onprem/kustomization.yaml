@@ -23,9 +23,9 @@ patches:
         path: /spec/template/spec/containers/0/env
         value:
           - name: DEPLOY_ENV
-            value: local
+            value: onprem
           - name: DEPLOY_REGION
-            value: busan-local
+            value: onprem-k3s
           # 플랫폼 Postgres 는 pg_hba 가 hostssl 만 허용하고 self-signed 인증서(SAN: postgres,
           # postgres.hackathon.svc.cluster.local)를 쓴다. 앱의 require 도 인증서를 검증하므로
           # verify-full + 서버 인증서를 CA 로 준다 (Secret sample-app-db-ca, key ca.pem = postgres-tls 의 tls.crt).
