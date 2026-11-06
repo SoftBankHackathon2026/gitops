@@ -57,7 +57,7 @@ ALB tags는 렌더러 카탈로그 값(`Project=oneaction,…,Env=dev`)이다. �
 | 종류·replicas | Deployment 2 | Rollout. aws 3, onprem·local 2 |
 | memory req/limit | 128Mi/256Mi | aws 128Mi/256Mi, onprem·local 64Mi/128Mi. 앱 실측 없음 |
 | DB TLS | aws `DB_SSL=true`+CA, onprem `false` | aws `verify-full`+CA, onprem·local `disable` |
-| onprem `DEPLOY_ENV` | onprem | local. 팀 결정 필요 |
+| onprem `DEPLOY_ENV` | onprem | onprem |
 | 제어 초기값 | false | base false, aws wrapper true |
 | 요청 API 인증 | `required`+Secret(optional) | aws wrapper·onprem `required`+Secret(optional), local 없음(open) |
 
