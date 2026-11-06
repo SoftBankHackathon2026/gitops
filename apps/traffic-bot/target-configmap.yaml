@@ -4,4 +4,4 @@ metadata:
   name: traffic-bot-target
 data:
   # 온프렘 단일 진입점. 공개 HTTPS 진입점이 생기면 여기만 바꾼다.
-  base-url: http://sample-app.hackathon.svc.cluster.local
+  base-url: http://durable-ingress.hackathon.svc.cluster.local
