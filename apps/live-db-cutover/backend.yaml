@@ -1,0 +1,83 @@
+# The process stays ON PREMISES. Only its PostgreSQL target is AWS RDS.
+# No EKS workload migration is implied by this database cutover backend.
+apiVersion: v1
+kind: Service
+metadata:
+  name: sample-app-rds
+spec:
+  selector: {app: sample-app-rds}
+  ports: [{port: 80, targetPort: 8080}]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sample-app-rds
+spec:
+  replicas: 1
+  strategy: {type: Recreate}
+  selector:
+    matchLabels: {app: sample-app-rds}
+  template:
+    metadata:
+      labels: {app: sample-app-rds}
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: app
+          image: docker.io/kty1021/sample-app:ecbc8bba22f8848bc3584a72713d6930cf22edce
+          command: [node, -e]
+          args:
+            - >-
+              const u = new URL('postgresql://migration_app@oneaction-review-db.cdb6j7l51obe.ap-northeast-2.rds.amazonaws.com:5432/migration_demo');
+              u.password = process.env.MIGRATION_APP_PASSWORD;
+              process.env.DATABASE_URL = u.href;
+              delete process.env.MIGRATION_APP_PASSWORD;
+              require('./src/server');
+          env:
+            - {name: DEPLOY_ENV, value: local}
+            - {name: DEPLOY_REGION, value: busan-local}
+            - {name: REQUEST_API_AUTH, value: optional}
+            - {name: PGSSLMODE, value: verify-full}
+            - {name: PGSSLROOTCERT, value: /db-ca/rds-ca.pem}
+            # App accepts delivery only after DB GRANT by cutover. Before that
+            # INSERT remains revoked, and ingress routes solely to source.
+            - name: MIGRATION_APP_PASSWORD
+              valueFrom:
+                secretKeyRef: {name: migration-db-credentials, key: app_password}
+          ports: [{name: http, containerPort: 8080}]
+          volumeMounts: [{name: ca, mountPath: /db-ca, readOnly: true}]
+          readinessProbe:
+            httpGet: {path: /readyz, port: http}
+            timeoutSeconds: 3
+          livenessProbe:
+            httpGet: {path: /healthz, port: http}
+            timeoutSeconds: 3
+          resources:
+            requests: {cpu: 50m, memory: 64Mi}
+            limits: {cpu: 150m, memory: 128Mi}
+          securityContext:
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            capabilities: {drop: [ALL]}
+      volumes:
+        - name: ca
+          configMap: {name: live-db-rds-trust}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: sample-app-rds
+spec:
+  podSelector:
+    matchLabels: {app: sample-app-rds}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels: {app: durable-ingress}
+      ports: [{protocol: TCP, port: 8080}]

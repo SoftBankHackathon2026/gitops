@@ -1,0 +1,10 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: hackathon
+resources:
+  - configmap.yaml
+  - backend.yaml
+  - runner.yaml
+configMapGenerator:
+  - name: live-db-rds-trust
+    files: [rds-ca.pem]
