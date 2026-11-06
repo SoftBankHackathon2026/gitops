@@ -145,3 +145,117 @@ data:
   # 관리자 비밀번호(MIGRATION_ADMIN_PASSWORD, MIGRATION_AWS_ADMIN_PASSWORD)는 실행 시 환경변수로만. 반영 후 워커 재시작 필요.
   # verify 단계가 migration_verify 로 접속하므로 MIGRATION_VERIFY_PASSWORD 도 함께 준다 (워커 파드 env 에 없다).
   # 내용은 apps/migration-return/configmap.yaml 의 config.yaml 과 같게 유지한다.
+
+  config.return-durable.yaml: |
+    targets:
+      onprem:
+        host: postgres
+        port: 5432
+        dbname: migration_demo
+        sslmode: require
+        admin_dbname: postgres
+        users:
+          admin:
+            user: oneaction_admin
+            password_env: MIGRATION_ADMIN_PASSWORD
+          app:
+            user: migration_app
+            password_env: MIGRATION_APP_PASSWORD
+          cdc:
+            user: migration_cdc
+            password_env: MIGRATION_CDC_PASSWORD
+          sink:
+            user: migration_sink
+            password_env: MIGRATION_SINK_PASSWORD
+          verify:
+            user: migration_verify
+            password_env: MIGRATION_VERIFY_PASSWORD
+      onprem_return:
+        host: postgres
+        port: 5432
+        dbname: migration_demo_return
+        sslmode: require
+        admin_dbname: postgres
+        users:
+          admin:
+            user: oneaction_admin
+            password_env: MIGRATION_ADMIN_PASSWORD
+          app:
+            user: migration_app
+            password_env: MIGRATION_APP_PASSWORD
+          cdc:
+            user: migration_cdc
+            password_env: MIGRATION_CDC_PASSWORD
+          sink:
+            user: migration_sink
+            password_env: MIGRATION_SINK_PASSWORD
+          verify:
+            user: migration_verify
+            password_env: MIGRATION_VERIFY_PASSWORD
+      rehearsal:
+        host: postgres
+        port: 5432
+        dbname: migration_demo_rehearsal
+        sslmode: require
+        admin_dbname: postgres
+        kind: self_managed
+        users:
+          admin:
+            user: oneaction_admin
+            password_env: MIGRATION_ADMIN_PASSWORD
+          app:
+            user: migration_app
+            password_env: MIGRATION_APP_PASSWORD
+          cdc:
+            user: migration_cdc
+            password_env: MIGRATION_CDC_PASSWORD
+          sink:
+            user: migration_sink
+            password_env: MIGRATION_SINK_PASSWORD
+          verify:
+            user: migration_verify
+            password_env: MIGRATION_VERIFY_PASSWORD
+      aws:
+        host: oneaction-review-db.cdb6j7l51obe.ap-northeast-2.rds.amazonaws.com
+        kind: rds
+        port: 5432
+        dbname: migration_demo
+        sslmode: require
+        admin_dbname: postgres
+        users:
+          admin:
+            user: oneaction_admin
+            password_env: MIGRATION_AWS_ADMIN_PASSWORD
+          app:
+            user: migration_app
+            password_env: MIGRATION_APP_PASSWORD
+          cdc:
+            user: migration_cdc
+            password_env: MIGRATION_CDC_PASSWORD
+          sink:
+            user: migration_sink
+            password_env: MIGRATION_SINK_PASSWORD
+          verify:
+            user: migration_verify
+            password_env: MIGRATION_VERIFY_PASSWORD
+    job:
+      job_id: durable_return_001
+      source: aws
+      target: onprem_return
+      table: public.migration_demo
+      live_phase_before: aws_live
+      live_phase_after: onprem_return_live
+    kafka:
+      bootstrap_servers: kafka:9092
+      connect_url: http://migration-connect:8083
+      secrets_file: /opt/kafka/secrets/migration.properties
+    worker:
+      url: http://db-insert-worker:8080
+      state_dir: /var/lib/worker
+    cutover:
+      state_dir: /var/lib/worker
+      min_live_rows_after_snapshot: 100
+      min_rows_after_switch: 100
+      offset_stable_seconds: 10
+      poll_interval_seconds: 5
+      stage_timeout_seconds: 1800
