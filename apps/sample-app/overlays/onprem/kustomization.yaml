@@ -14,6 +14,12 @@ namespace: hackathon
 resources:
   - ../../base
   - service-canary.yaml
+  - service-smoke.yaml
+configMapGenerator:
+  # 내용이 바뀌면 이름 해시가 바뀌어 새 Rollout 으로 나간다.
+  - name: sample-app-db-url-render
+    files:
+      - render-db-url.js
 patches:
   - target:
       kind: Rollout
@@ -33,11 +39,9 @@ patches:
             value: verify-full
           - name: PGSSLROOTCERT
             value: /db-ca/ca.pem
-          - name: DATABASE_URL
-            valueFrom:
-              secretKeyRef:
-                name: sample-app-db
-                key: database-url
+          # init 컨테이너가 OpenBao 값으로 만든 파일. 앱은 시작할 때 한 번만 읽으므로 값이 바뀌면 재시작해야 한다.
+          - name: DATABASE_URL_FILE
+            value: /run/db/database-url
           - name: FAIL_RATE
             value: '0'
           - name: APP_CONTROL_FILE
@@ -59,6 +63,9 @@ patches:
         path: /spec/template/spec/containers/0/volumeMounts/-
         value: {name: db-ca, mountPath: /db-ca, readOnly: true}
       - op: add
+        path: /spec/template/spec/containers/0/volumeMounts/-
+        value: {name: db-url, mountPath: /run/db, readOnly: true}
+      - op: add
         path: /spec/template/spec/volumes/-
         value:
           name: db-ca
@@ -66,3 +73,50 @@ patches:
             secretName: sample-app-db-ca
             items:
               - {key: ca.pem, path: ca.pem}
+      # 비밀번호가 든 파일이라 디스크에 남기지 않는다.
+      - op: add
+        path: /spec/template/spec/volumes/-
+        value:
+          name: db-url
+          emptyDir: {medium: Memory, sizeLimit: 1Mi}
+      - op: add
+        path: /spec/template/spec/volumes/-
+        value:
+          name: db-url-render
+          configMap:
+            name: sample-app-db-url-render
+      # 🔴 base 의 images 변환은 overlay 패치보다 먼저 돌아 여기 태그를 바꾸지 않는다. 그래서 태그를 직접 고정한다.
+      # 분석 Job 과 같은 이유로 sample-app 이미지(node, 이 클러스터에서 TCP 동작 확인)를 쓴다.
+      - op: add
+        path: /spec/template/spec/initContainers
+        value:
+          - name: render-db-url
+            image: docker.io/kty1021/sample-app:6ce6e5fe1b39551e80b0904be4e12ac1bfd9ffdf
+            command: [node, /render/render-db-url.js]
+            env:
+              - name: BAO_ADDR
+                value: http://openbao.hackathon.svc.cluster.local:8200
+              - name: BAO_KV_PATH
+                value: secret/data/hackathon/sample-app/onprem
+              # 읽기 전용 앱 토큰. 에이전트 토큰(ai-agent-store)과 별개다. README 참고.
+              - name: BAO_TOKEN
+                valueFrom:
+                  secretKeyRef: {name: sample-app-openbao, key: token}
+              - name: BASE_DATABASE_URL
+                valueFrom:
+                  secretKeyRef: {name: sample-app-db, key: database-url}
+              - name: OUTPUT_FILE
+                value: /run/db/database-url
+            volumeMounts:
+              - {name: db-url, mountPath: /run/db}
+              - {name: db-url-render, mountPath: /render, readOnly: true}
+            resources:
+              requests: {cpu: 10m, memory: 32Mi}
+              limits: {cpu: 100m, memory: 64Mi}
+            securityContext:
+              runAsNonRoot: true
+              runAsUser: 1000  # 이미지 USER node. 앱 컨테이너가 같은 UID 로 파일을 읽는다
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true
+              capabilities:
+                drop: [ALL]

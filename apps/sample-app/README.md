@@ -233,3 +233,49 @@ Argo Rollouts·AnalysisTemplate CRD, 각 클러스터 등록, Prometheus, Secret
   테이블·역할은 `migration-db-init` 이 만든다. 앱은 테이블을 만들지 않는다.
 - 요청 API 인증은 온프렘에서 `optional`(open)이다. 공개 진입점이 없고 트래픽 봇이 ClusterIP 로 붙어야 하기 때문이다.
   봇 선언은 `apps/traffic-bot/`(Argo `traffic-bot`), 토큰 없이 돈다.
+
+## 온프렘 DB 설정 경로 (OpenBao)
+
+온프렘 파드는 시작할 때 init 컨테이너 `render-db-url` 이 OpenBao
+`secret/data/hackathon/sample-app/onprem` 의 `DB_HOST`·`DB_PORT`·`DB_NAME`·`DB_USER` 와
+Secret `sample-app-db` 의 비밀번호로 접속 URL 을 만들어 `/run/db/database-url`(메모리 emptyDir)에 쓴다.
+앱은 `DATABASE_URL_FILE` 로 이 파일을 시작할 때 한 번 읽는다. verify-full 과 `sample-app-db-ca` 는 그대로다.
+
+- OpenBao 에 닿지 않거나 봉인(503)이면 경고를 남기고 **Secret 의 URL 그대로 시작한다.** 봉인 때문에 공용 앱이 못 뜨는 일을 막기 위해서다. 이때는 저장소 값이 반영되지 않으므로 init 로그를 확인한다.
+- 토큰 거절(403)이나 값 없음은 설정 오류라 init 이 실패하고 새 파드가 시작하지 않는다. 토큰 Secret 이 없어도 같다.
+- sample-app 쪽 egress 를 막는 NetworkPolicy 는 없고 OpenBao 는 같은 네임스페이스 ingress 를 허용하므로 정책 추가는 필요 없다.
+- `sample-app-smoke` Service 는 NotReady 파드까지 포함한다. AI 에이전트 스모크 전용이다 (`service-smoke.yaml` 설명 참고).
+
+### 이 overlay 를 main 에 올리기 전에 (한 번만)
+
+순서를 지킨다. 값이 없는 상태로 배포하면 카나리 파드가 Init 에서 멈추고 Rollout 이 abort 된다 (stable 은 유지된다).
+
+```sh
+export KUBECONFIG=~/.kube/oneport-onprem.yaml
+NS="-n hackathon"
+
+# 1) 봉인 해제 (파드가 다시 뜰 때마다 필요). apps/openbao/README.md 참고
+kubectl $NS exec openbao-0 -- bao status | grep Sealed
+
+# 2) 관리자 토큰은 Secret 에서 읽어 셸 변수로만 쓴다. 값을 출력하지 않는다
+ROOT=$(kubectl $NS get secret openbao-init -o jsonpath='{.data.init\.json}' | base64 -d | python3 -c 'import sys,json; print(json.load(sys.stdin)["root_token"])')
+bao_exec() { kubectl $NS exec -i openbao-0 -- env BAO_ADDR=http://127.0.0.1:8200 BAO_TOKEN="$ROOT" bao "$@"; }
+
+# 3) 지금 쓰는 접속 URL 에서 비밀이 아닌 값만 뽑아 저장소에 넣는다 (비밀번호는 넣지 않는다)
+kubectl $NS get secret sample-app-db -o jsonpath='{.data.database-url}' | base64 -d | python3 -c '
+import json,sys,urllib.parse as u
+p=u.urlsplit(sys.stdin.read().strip())
+print(json.dumps({"DB_HOST":p.hostname,"DB_PORT":str(p.port or 5432),"DB_NAME":p.path.lstrip("/"),"DB_USER":u.unquote(p.username)}))
+' | bao_exec kv put -mount=secret hackathon/sample-app/onprem -
+
+# 4) 읽기 전용 정책과 앱 전용 토큰. 토큰은 Secret 에만 남긴다 (에이전트 토큰 재사용 금지)
+printf 'path "secret/data/hackathon/sample-app/onprem" { capabilities = ["read"] }\n' | bao_exec policy write sample-app-read -
+bao_exec token create -orphan -no-default-policy -policy=sample-app-read -ttl=720h -format=json \
+  | python3 -c 'import sys,json; sys.stdout.write(json.load(sys.stdin)["auth"]["client_token"])' \
+  | kubectl $NS create secret generic sample-app-openbao --from-file=token=/dev/stdin
+unset ROOT
+
+# 5) 확인: 앱 토큰으로 읽히고 쓰이지 않아야 한다 (쓰기는 403)
+```
+
+토큰 TTL 은 720시간이다. 만료되면 새 파드가 시작하지 못하니 데모 뒤에도 계속 쓰면 다시 발급한다.
