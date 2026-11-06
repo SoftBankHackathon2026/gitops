@@ -4,4 +4,4 @@ kind: ConfigMap
 metadata:
   name: sample-app-control
 data:
-  control.json: '{"writes_paused": false}'
+  control.json: '{"writes_paused": true}'
