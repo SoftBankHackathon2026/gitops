@@ -1,7 +1,8 @@
 # 실제 온프렘 → AWS 요청 접수와 전환
 
-이 변경은 배포 준비 단계다. `application.staged.yaml`은 app-of-apps 감시 경로 밖에 있다.
-이미지 게시와 아래 전제 확인 전에는 이동하지 않는다. 실제 이전 시험은 아직 실행하지 않았다.
+온프렘 접수 서비스를 app-of-apps로 배포한다. 앱 이미지는 sample-app PR #5의 merge SHA로 고정한다.
+처음에는 paused이며 기존 봇 주소는 그대로다. AWS 준비 전에는 대상 전환하지 않는다.
+실제 이전 시험은 아직 실행하지 않았다.
 
 ## 2026-11-06 실제 환경 확인
 
@@ -15,7 +16,7 @@
 ## 배포 순서
 
 1. sample-app의 `src/durable-ingress/`와 202 접수 지원 봇을 PR로 게시한다.
-   CI 통과·머지·이미지 게시 뒤 kustomization의 `PUBLISH_REQUIRED`를 실제 SHA로 고정한다.
+   CI 통과·머지·이미지 게시 뒤 kustomization의 SHA에 해당하는 이미지 게시를 확인한다.
 2. AWS EKS 접근을 기존 infra/eks Terraform allowlist 절차로 복구한다.
    기존 주소를 유지하고 현재 작업 PC /32만 추가한다. 노드/권한/다른 인프라 변경은 제외한다.
 3. AWS Argo app-of-apps에서 기존 `sample-app-aws`가 `apps/sample-app/runtime/aws`를
@@ -25,7 +26,7 @@
 4. 실제 AWS HTTPS 주소/인증 경로가 준비되면 `INGRESS_TARGETS`에 aws를 추가한다.
    `{url: <HTTPS주소>, token_env: AWS_REQUEST_API_TOKEN}` 구조, 토큰 env는 Secret 참조.
    sample-app `scripts/preflight-live-migration.js`로 양쪽 API·DB·대상 pause를 확인한다.
-5. `application.staged.yaml`을 `argocd/onprem/durable-ingress.yaml`로 옮겨 Argo가 배포한다.
+5. `argocd/onprem/durable-ingress.yaml`을 통해 Argo가 배포한다.
    Redis PVC·AOF·NetworkPolicy 동작과 ingress readiness를 확인한다.
 6. 운영 포트를 port-forward한다. 제어 API는 파드 loopback:9092에만 바인딩되며 Service에 없다.
    `kubectl -n hackathon port-forward deploy/durable-ingress 19092:9092 18080:8080`
