@@ -1,0 +1,125 @@
+# 평소에는 대기하고, 사람이 exec 로 실행한다.
+#   kubectl -n hackathon exec deploy/ai-agent -c agent -- python -m agent run
+#
+# 🔴 컨테이너 둘의 경계가 보안의 핵심이다. Codex 샌드박스는 제한된 파드에서 돌지 않아 컨테이너로 격리한다.
+#   agent        비밀값(OpenBao 토큰, DB URL, SA 토큰)이 있고 Codex 를 실행하지 않는다.
+#   codex-runner CODEX_API_KEY 와 작업 폴더만 있다. 여기에 비밀값·SA 토큰·상태 볼륨을 넣지 않는다.
+#   shareProcessNamespace 를 켜지 않는다. 켜면 사이드카가 agent 의 /proc/<pid>/environ 을 볼 수 있다.
+#
+# PVC 없음: storage 쿼터가 가득 차 있다(30Gi/30Gi). 실행 기록은 파드가 재시작되면 사라진다.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ai-agent
+  labels:
+    app.kubernetes.io/name: ai-agent
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: ai-agent
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: ai-agent
+    spec:
+      serviceAccountName: ai-agent
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001  # 이미지 USER agent
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: agent
+          image: ghcr.io/softbankhackathon2026/ghost-agent
+          imagePullPolicy: IfNotPresent
+          command: [sleep, infinity]
+          env:
+            - name: AGENT_CONFIG
+              value: /etc/agent/agent.yaml
+            - name: VAULT_TOKEN
+              valueFrom:
+                secretKeyRef: {name: ai-agent-store, key: vault_token}
+            - name: VAULT_ADDR
+              valueFrom:
+                secretKeyRef: {name: ai-agent-store, key: vault_addr}
+            - name: VAULT_MOUNT
+              valueFrom:
+                secretKeyRef: {name: ai-agent-store, key: vault_mount}
+            - name: VAULT_PATH
+              valueFrom:
+                secretKeyRef: {name: ai-agent-store, key: vault_path}
+            # 수정 값 탐침의 비밀번호. 호스트·포트는 제안 값을 쓴다.
+            - name: SAMPLE_APP_DATABASE_URL
+              valueFrom:
+                secretKeyRef: {name: sample-app-db, key: database-url}
+            - name: SLACK_BOT_TOKEN
+              valueFrom:
+                secretKeyRef: {name: ai-agent-credentials, key: SLACK_BOT_TOKEN, optional: true}
+          volumeMounts:
+            - {name: config, mountPath: /etc/agent, readOnly: true}
+            - {name: state, mountPath: /var/lib/agent}
+            - {name: work, mountPath: /work}
+            - {name: tmp, mountPath: /tmp}
+            - {name: db-ca, mountPath: /db-ca, readOnly: true}
+            - {name: sa-token, mountPath: /var/run/secrets/kubernetes.io/serviceaccount, readOnly: true}
+          resources:
+            requests: {cpu: 10m, memory: 64Mi}
+            limits: {cpu: 100m, memory: 128Mi}
+          securityContext: &restricted
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+        - name: codex-runner
+          image: ghcr.io/softbankhackathon2026/ghost-agent
+          imagePullPolicy: IfNotPresent
+          command: [python, -m, agent.codex_runner, --dir, /work]
+          env:
+            - name: CODEX_API_KEY
+              valueFrom:
+                secretKeyRef: {name: ai-agent-credentials, key: CODEX_API_KEY}
+          volumeMounts:
+            - {name: work, mountPath: /work}
+            - {name: runner-tmp, mountPath: /tmp}
+          resources:
+            requests: {cpu: 10m, memory: 128Mi}
+            limits: {cpu: 100m, memory: 512Mi}
+          securityContext: *restricted
+      volumes:
+        - name: config
+          configMap:
+            name: ai-agent-config
+        - name: state
+          emptyDir: {sizeLimit: 64Mi}
+        - name: work
+          emptyDir: {sizeLimit: 16Mi}
+        - name: tmp
+          emptyDir: {sizeLimit: 16Mi}
+        - name: runner-tmp
+          emptyDir: {sizeLimit: 128Mi}
+        - name: db-ca
+          secret:
+            secretName: sample-app-db-ca
+            items:
+              - {key: ca.pem, path: ca.pem}
+        # 자동 마운트와 같은 내용을 agent 컨테이너에만 넣는다.
+        - name: sa-token
+          projected:
+            sources:
+              - serviceAccountToken:
+                  path: token
+                  expirationSeconds: 3600
+              - configMap:
+                  name: kube-root-ca.crt
+                  items:
+                    - {key: ca.crt, path: ca.crt}
+              - downwardAPI:
+                  items:
+                    - path: namespace
+                      fieldRef: {fieldPath: metadata.namespace}

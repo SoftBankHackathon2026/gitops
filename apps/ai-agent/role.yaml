@@ -1,0 +1,26 @@
+# 재시작에 필요한 만큼만 준다. 이 네임스페이스의 sample-app Rollout 하나와 파드 조회·삭제.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: ai-agent
+rules:
+  - apiGroups: ["argoproj.io"]
+    resources: ["rollouts"]
+    resourceNames: ["sample-app"]
+    verbs: ["get", "patch"]
+  # 파드 이름은 매번 바뀌어 resourceNames 로 좁힐 수 없다. 코드는 selector app=sample-app 의 파드만 지운다.
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: ai-agent
+subjects:
+  - kind: ServiceAccount
+    name: ai-agent
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: ai-agent
