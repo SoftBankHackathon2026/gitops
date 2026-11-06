@@ -1,7 +1,9 @@
 # 온프렘 k3s 용 canary 분석. web 프로바이더는 argo-rollouts 컨트롤러 파드가 직접 HTTP 를 호출하는데,
 # 이 클러스터에서는 컨트롤러(k3s-master)에서 ClusterIP 로 가는 연결이 거부돼 분석이 Error 로 끝났다
 # (2026-11-05 revision 2 abort). 그래서 검사를 hackathon 네임스페이스 안의 Job 으로 돌린다.
-# 검사 내용은 같다: Service 를 거쳐 /api/info 가 200 이고 app 필드가 sample-app 인지.
+# 검사 내용(2026-11-06 보강): 카나리 전용 Service 를 거쳐 /api/info 가 200 이고 app 필드가 sample-app,
+# database.name 이 있고(DB 조회 성공), write_control.healthy 가 true 인지. DB 연결 장애는 readiness(/readyz)가
+# 먼저 막고, readiness 는 통과하지만 기능이 깨진 경우를 이 분석이 잡는다.
 apiVersion: argoproj.io/v1alpha1
 kind: AnalysisTemplate
 metadata:
@@ -40,9 +42,14 @@ spec:
                       - -c
                       - |
                         set -eu
-                        body=$(wget -q -O - -T 5 http://sample-app.hackathon.svc.cluster.local/api/info)
+                        # 카나리 전용 Service 를 본다 (overlays/onprem/service-canary.yaml). stable 과 섞이지 않는다.
+                        # wget 은 HTTP 오류(503 DB_UNAVAILABLE 등)면 실패한다. 그 위에 세 가지를 본다:
+                        #   app 이름 / database.name 이 있음(DB 조회 성공) / write_control.healthy=true(제어 파일 정상)
+                        body=$(wget -q -O - -T 5 http://sample-app-canary.hackathon.svc.cluster.local/api/info)
                         echo "$body" | head -c 300; echo
                         echo "$body" | grep -q '"app":"sample-app"'
+                        echo "$body" | grep -Eq '"database":\{"name":"[^"]+"'
+                        echo "$body" | grep -q '"write_control":{"healthy":true}'
                     resources:
                       requests: {cpu: 10m, memory: 32Mi}
                       limits: {cpu: 100m, memory: 128Mi}

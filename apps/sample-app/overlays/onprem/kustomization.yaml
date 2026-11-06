@@ -13,6 +13,7 @@ kind: Kustomization
 namespace: hackathon
 resources:
   - ../../base
+  - service-canary.yaml
 patches:
   - target:
       kind: Rollout
@@ -50,6 +51,10 @@ patches:
       - op: replace
         path: /spec/template/spec/containers/0/readinessProbe/httpGet/path
         value: /readyz
+      # 분석 Job 이 카나리 파드만 검사하도록 canaryService 를 지정한다 (service-canary.yaml).
+      - op: add
+        path: /spec/strategy/canary/canaryService
+        value: sample-app-canary
       - op: add
         path: /spec/template/spec/containers/0/volumeMounts/-
         value: {name: db-ca, mountPath: /db-ca, readOnly: true}
