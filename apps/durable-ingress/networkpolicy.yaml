@@ -1,0 +1,27 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: durable-ingress-redis
+spec:
+  podSelector:
+    matchLabels: {app: durable-ingress-redis}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels: {app: durable-ingress}
+      ports: [{protocol: TCP, port: 6379}]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: durable-ingress
+spec:
+  podSelector:
+    matchLabels: {app: durable-ingress}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels: {app: traffic-bot}
+      ports: [{protocol: TCP, port: 8080}]

@@ -1,0 +1,38 @@
+{
+  "at": "2026-11-06T12:07:38.505Z",
+  "passed": false,
+  "targets": {
+    "source": {
+      "/readyz": {
+        "http": 200,
+        "passed": true
+      },
+      "/api/info": {
+        "http": 200,
+        "passed": true,
+        "environment": "local",
+        "database": "migration_demo_return",
+        "writes_paused": false
+      },
+      "/api/requests/00000000-0000-0000-0000-000000000001": {
+        "http": 404,
+        "passed": true
+      }
+    },
+    "target": {
+      "/readyz": {
+        "http": 404,
+        "passed": false
+      },
+      "/api/info": {
+        "http": 200,
+        "passed": false,
+        "environment": "aws"
+      },
+      "/api/requests/00000000-0000-0000-0000-000000000001": {
+        "http": 404,
+        "passed": false
+      }
+    }
+  }
+}

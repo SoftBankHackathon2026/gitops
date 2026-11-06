@@ -1,0 +1,52 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: durable-ingress
+spec:
+  selector: {app: durable-ingress}
+  ports: [{name: http, port: 80, targetPort: 8080}]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: durable-ingress
+spec:
+  replicas: 1
+  strategy: {type: Recreate}
+  selector:
+    matchLabels: {app: durable-ingress}
+  template:
+    metadata:
+      labels: {app: durable-ingress}
+    spec:
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 30
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: ingress
+          image: docker.io/kty1021/sample-app
+          command: [node, src/durable-ingress/server.js]
+          env:
+            - name: REDIS_URL
+              value: redis://durable-ingress-redis:6379
+            # AWS is added only after its new app/DB/TLS/auth readiness is verified.
+            # Tokens must be Secret env references, never literals in this JSON.
+            - name: INGRESS_TARGETS
+              value: '{"onprem":{"url":"http://sample-app.hackathon.svc.cluster.local"}}'
+          ports: [{name: http, containerPort: 8080}]
+          readinessProbe:
+            httpGet: {path: /readyz, port: http}
+            timeoutSeconds: 3
+          livenessProbe:
+            httpGet: {path: /healthz, port: http}
+          resources:
+            requests: {cpu: 100m, memory: 128Mi}
+            limits: {cpu: '1', memory: 256Mi}
+          securityContext:
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            capabilities: {drop: [ALL]}
