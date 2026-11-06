@@ -19,9 +19,24 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
   - ../../overlays/aws
+  - external-secrets.yaml
 patches:
   - target:
       kind: Rollout
       name: sample-app
     path: rollout-runtime.yaml
   - path: control-aws.yaml
+  - path: ingress-tls.yaml
+
+# Tested application image, promoted to the cloud-native registry.
+images:
+  - name: docker.io/kty1021/sample-app
+    newName: 974402993422.dkr.ecr.ap-northeast-2.amazonaws.com/ghost/sample-app
+    newTag: ecbc8bba22f8848bc3584a72713d6930cf22edce
+# RDS trust anchors are public data, not credentials.
+configMapGenerator:
+  - name: sample-app-db-ca
+    files:
+      - ca.pem=rds-ca.pem
+generatorOptions:
+  disableNameSuffixHash: true

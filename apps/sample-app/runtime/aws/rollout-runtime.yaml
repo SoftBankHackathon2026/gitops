@@ -71,5 +71,10 @@
   path: /spec/template/spec/volumes/-
   value:
     name: db-ca
-    secret:
-      secretName: sample-app-db-ca
+    configMap:
+      name: sample-app-db-ca
+
+# Leave time for first ECR pull and RDS readiness; rollout still aborts on failure.
+- op: replace
+  path: /spec/progressDeadlineSeconds
+  value: 300
