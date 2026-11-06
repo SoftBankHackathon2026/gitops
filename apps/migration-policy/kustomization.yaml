@@ -10,6 +10,6 @@ resources:
   - service.yaml
 images:
   - name: ghcr.io/softbankhackathon2026/migration-policy
-    # 자리표시자. Hackathon 저장소 policies/ 의 CI 가 커밋 SHA 로 바꾸거나, 사람이 고정한다.
-    # 정책 버전 = 이 태그. 클러스터에서 정책 파일을 손으로 바꾸지 않는다.
-    newTag: main
+    # policies CI run 41820600281, source abdc867a000fe5ea3a4c8268d7a76f1072dba233.
+    # Digest 고정은 인증 문제를 해결하지 않는다. Private GHCR 읽기 인증은 별도 필요.
+    digest: sha256:66f6dccbd2affea585126a0daa7f89f9756216e9d1074098b47b6e30cbb68a10
