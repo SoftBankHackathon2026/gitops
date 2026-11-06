@@ -33,10 +33,10 @@ spec:
           env:
             - name: REDIS_URL
               value: redis://durable-ingress-redis:6379
-            # AWS is added only after its new app/DB/TLS/auth readiness is verified.
+            # aws_db is an onprem application process connected to AWS RDS.
             # Tokens must be Secret env references, never literals in this JSON.
             - name: INGRESS_TARGETS
-              value: '{"onprem":{"url":"http://sample-app.hackathon.svc.cluster.local"}}'
+              value: '{"onprem":{"url":"http://sample-app.hackathon.svc.cluster.local"},"aws_db":{"url":"http://sample-app-rds.hackathon.svc.cluster.local"}}'
           ports: [{name: http, containerPort: 8080}]
           readinessProbe:
             httpGet: {path: /readyz, port: http}
