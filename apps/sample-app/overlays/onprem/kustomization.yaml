@@ -15,6 +15,8 @@ resources:
   - ../../base
   - service-canary.yaml
   - service-smoke.yaml
+configurations:
+  - rollout-kustomizeconfig.yaml
 configMapGenerator:
   # 내용이 바뀌면 이름 해시가 바뀌어 새 Rollout 으로 나간다.
   - name: sample-app-db-url-render
