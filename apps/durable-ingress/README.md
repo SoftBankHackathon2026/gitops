@@ -1,6 +1,6 @@
 # 실제 온프렘 → AWS 요청 접수와 전환
 
-온프렘 접수 서비스를 app-of-apps로 배포한다. 앱 이미지는 sample-app PR #5의 merge SHA로 고정한다.
+온프렘 접수 서비스를 app-of-apps로 배포한다. 앱 이미지는 sample-app PR #9의 merge SHA(363eeb9)로 고정한다. 제어 API 바인드 주소·Bearer 토큰·포트를 환경변수로 받는 버전이다.
 처음에는 paused이며 기존 봇 주소는 그대로다. AWS 준비 전에는 대상 전환하지 않는다.
 실제 이전 시험은 아직 실행하지 않았다.
 
