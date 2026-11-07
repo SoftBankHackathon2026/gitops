@@ -80,4 +80,94 @@ spec:
     - from:
         - podSelector:
             matchLabels: {app: durable-ingress}
+        # cutover runner checks /readyz and /api/info before routing the queue here (ingress.app_checks).
+        - podSelector:
+            matchLabels: {app: live-db-cutover}
+      ports: [{protocol: TCP, port: 8080}]
+---
+# Rehearsal backend: the SAME on-prem process image, pointed at migration_demo_rehearsal on the
+# on-prem Postgres. Lets the cutover tool drive the full automatic path (worker + CDC + ingress
+# pause/target/resume) with no AWS resource involved. Not a user-facing deployment.
+apiVersion: v1
+kind: Service
+metadata:
+  name: sample-app-rehearsal
+spec:
+  selector: {app: sample-app-rehearsal}
+  ports: [{port: 80, targetPort: 8080}]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sample-app-rehearsal
+spec:
+  replicas: 1
+  strategy: {type: Recreate}
+  selector:
+    matchLabels: {app: sample-app-rehearsal}
+  template:
+    metadata:
+      labels: {app: sample-app-rehearsal}
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: app
+          image: docker.io/kty1021/sample-app:363eeb9298c1cee74d0cbc9dd5d4fb4b172b0c2e
+          command: [node, -e]
+          args:
+            - >-
+              const u = new URL('postgresql://migration_app@postgres.hackathon.svc.cluster.local:5432/migration_demo_rehearsal');
+              u.password = process.env.MIGRATION_APP_PASSWORD;
+              process.env.DATABASE_URL = u.href;
+              delete process.env.MIGRATION_APP_PASSWORD;
+              require('./src/server');
+          env:
+            - {name: DEPLOY_ENV, value: rehearsal}
+            - {name: DEPLOY_REGION, value: onprem-k3s}
+            - {name: REQUEST_API_AUTH, value: optional}
+            - {name: PGSSLMODE, value: verify-full}
+            - {name: PGSSLROOTCERT, value: /db-ca/ca.pem}
+            # INSERT on migration_demo_rehearsal is granted by the cutover tool at SWITCHING;
+            # before that the ingress keeps routing to the source.
+            - name: MIGRATION_APP_PASSWORD
+              valueFrom:
+                secretKeyRef: {name: migration-db-credentials, key: app_password}
+          ports: [{name: http, containerPort: 8080}]
+          volumeMounts: [{name: ca, mountPath: /db-ca, readOnly: true}]
+          readinessProbe:
+            httpGet: {path: /readyz, port: http}
+            timeoutSeconds: 3
+          livenessProbe:
+            httpGet: {path: /healthz, port: http}
+            timeoutSeconds: 3
+          resources:
+            requests: {cpu: 50m, memory: 64Mi}
+            limits: {cpu: 150m, memory: 128Mi}
+          securityContext:
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            capabilities: {drop: [ALL]}
+      volumes:
+        - name: ca
+          secret: {secretName: sample-app-db-ca}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: sample-app-rehearsal
+spec:
+  podSelector:
+    matchLabels: {app: sample-app-rehearsal}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels: {app: durable-ingress}
+        - podSelector:
+            matchLabels: {app: live-db-cutover}
       ports: [{protocol: TCP, port: 8080}]

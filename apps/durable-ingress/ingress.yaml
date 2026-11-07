@@ -44,9 +44,11 @@ spec:
             - name: REDIS_URL
               value: redis://durable-ingress-redis:6379
             # aws_db is an onprem application process connected to AWS RDS.
+            # rehearsal is an onprem application process on the same Postgres (migration_demo_rehearsal),
+            # used to exercise the automatic cutover without touching AWS.
             # Tokens must be Secret env references, never literals in this JSON.
             - name: INGRESS_TARGETS
-              value: '{"onprem":{"url":"http://sample-app.hackathon.svc.cluster.local"},"aws_db":{"url":"http://sample-app-rds.hackathon.svc.cluster.local"},"aws_eks":{"url":"https://sample-app.hackerthon.yubin.dev","token_env":"EKS_REQUEST_API_TOKEN"}}'
+              value: '{"onprem":{"url":"http://sample-app.hackathon.svc.cluster.local"},"aws_db":{"url":"http://sample-app-rds.hackathon.svc.cluster.local"},"rehearsal":{"url":"http://sample-app-rehearsal.hackathon.svc.cluster.local"},"aws_eks":{"url":"https://sample-app.hackerthon.yubin.dev","token_env":"EKS_REQUEST_API_TOKEN"}}'
             - name: EKS_REQUEST_API_TOKEN
               valueFrom:
                 secretKeyRef: {name: sample-app-eks-api-token, key: token}

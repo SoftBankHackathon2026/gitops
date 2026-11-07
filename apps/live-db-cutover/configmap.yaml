@@ -273,3 +273,133 @@ data:
       offset_stable_seconds: 10
       poll_interval_seconds: 5
       stage_timeout_seconds: 1800
+
+  # 리허설(AWS 없이): 현재 라이브 DB(onprem_return)에서 같은 Postgres 의 migration_demo_rehearsal 로
+  # 워커·CDC·DB 권한·접수 큐를 cutover 도구가 전부 자동으로 넘긴다. 러너 파드에서
+  #   python -m migration.cutover --config /etc/live-cutover/config.rehearsal-durable.yaml --state-dir /var/lib/worker run
+  # 전제: migration_demo_rehearsal 은 비어 있어야 한다(11-05 rehearsal_001 잔존 행은 먼저 비운다).
+  # 되돌리기: 리허설 뒤 라이브를 onprem_return 으로 되돌리려면 접수 서비스 /target onprem 과 원본 GRANT 를
+  # 운영자가 되돌린다(리허설 중 리허설 DB 에 들어간 합성 행은 그대로 둔다).
+  config.rehearsal-durable.yaml: |
+    targets:
+      onprem:
+        host: postgres
+        port: 5432
+        dbname: migration_demo
+        sslmode: require
+        admin_dbname: postgres
+        users:
+          admin:
+            user: oneaction_admin
+            password_env: MIGRATION_ADMIN_PASSWORD
+          app:
+            user: migration_app
+            password_env: MIGRATION_APP_PASSWORD
+          cdc:
+            user: migration_cdc
+            password_env: MIGRATION_CDC_PASSWORD
+          sink:
+            user: migration_sink
+            password_env: MIGRATION_SINK_PASSWORD
+          verify:
+            user: migration_verify
+            password_env: MIGRATION_VERIFY_PASSWORD
+      onprem_return:
+        host: postgres
+        port: 5432
+        dbname: migration_demo_return
+        sslmode: require
+        admin_dbname: postgres
+        users:
+          admin:
+            user: oneaction_admin
+            password_env: MIGRATION_ADMIN_PASSWORD
+          app:
+            user: migration_app
+            password_env: MIGRATION_APP_PASSWORD
+          cdc:
+            user: migration_cdc
+            password_env: MIGRATION_CDC_PASSWORD
+          sink:
+            user: migration_sink
+            password_env: MIGRATION_SINK_PASSWORD
+          verify:
+            user: migration_verify
+            password_env: MIGRATION_VERIFY_PASSWORD
+      rehearsal:
+        host: postgres
+        port: 5432
+        dbname: migration_demo_rehearsal
+        sslmode: require
+        admin_dbname: postgres
+        kind: self_managed
+        users:
+          admin:
+            user: oneaction_admin
+            password_env: MIGRATION_ADMIN_PASSWORD
+          app:
+            user: migration_app
+            password_env: MIGRATION_APP_PASSWORD
+          cdc:
+            user: migration_cdc
+            password_env: MIGRATION_CDC_PASSWORD
+          sink:
+            user: migration_sink
+            password_env: MIGRATION_SINK_PASSWORD
+          verify:
+            user: migration_verify
+            password_env: MIGRATION_VERIFY_PASSWORD
+      aws:
+        host: oneaction-review-db.cdb6j7l51obe.ap-northeast-2.rds.amazonaws.com
+        kind: rds
+        port: 5432
+        dbname: migration_demo
+        sslmode: require
+        admin_dbname: postgres
+        users:
+          admin:
+            user: oneaction_admin
+            password_env: MIGRATION_AWS_ADMIN_PASSWORD
+          app:
+            user: migration_app
+            password_env: MIGRATION_APP_PASSWORD
+          cdc:
+            user: migration_cdc
+            password_env: MIGRATION_CDC_PASSWORD
+          sink:
+            user: migration_sink
+            password_env: MIGRATION_SINK_PASSWORD
+          verify:
+            user: migration_verify
+            password_env: MIGRATION_VERIFY_PASSWORD
+    job:
+      job_id: rehearsal_durable_001
+      source: onprem_return
+      target: rehearsal
+      table: public.migration_demo
+      live_phase_before: onprem_return_live
+      live_phase_after: rehearsal_live
+    kafka:
+      bootstrap_servers: kafka:9092
+      connect_url: http://migration-connect:8083
+      secrets_file: /opt/kafka/secrets/migration.properties
+    worker:
+      url: http://db-insert-worker:8080
+      state_dir: /var/lib/worker
+    cutover:
+      state_dir: /var/lib/worker
+      min_live_rows_after_snapshot: 100
+      min_rows_after_switch: 100
+      offset_stable_seconds: 10
+      poll_interval_seconds: 5
+      stage_timeout_seconds: 1800
+    ingress:
+      control_url: http://durable-ingress-control.hackathon.svc.cluster.local:9092
+      token_env: INGRESS_CONTROL_TOKEN
+      targets:
+        onprem_return: onprem               # 온프렘 sample-app (migration_demo_return)
+        rehearsal: rehearsal                # 온프렘 sample-app-rehearsal (migration_demo_rehearsal)
+      app_checks:
+        rehearsal:
+          url: http://sample-app-rehearsal.hackathon.svc.cluster.local
+          database: migration_demo_rehearsal
