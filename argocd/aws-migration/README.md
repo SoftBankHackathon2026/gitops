@@ -3,7 +3,8 @@
 The live `sample-app-aws` previously referenced generated `overlays/aws`, so the
 DB runtime wrapper committed in Git was not deployed. `aws-migration-root` now
 reconciles the explicit list in `argocd/kustomization.yaml`: the existing sample
-application and its new namespace-scoped External Secrets controller only.
+application, its namespace-scoped External Secrets controller, and the staged
+[AWS cloud replication stack](../../apps/cloud-migration-aws/README.md) (replicas=0).
 It does not adopt platform, monitoring, GCP, or onprem applications.
 
 Prerequisites:

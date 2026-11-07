@@ -1,0 +1,61 @@
+# Set roles and endpoints after owner reconciliation. Never reuse the active job or populated target.
+targets:
+  aws:
+    host: oneaction-review-db.cdb6j7l51obe.ap-northeast-2.rds.amazonaws.com
+    dbname: migration_demo
+    sslmode: verify-full
+    users:
+      admin:
+        user: oneaction_admin
+        password_env: MIGRATION_AWS_ADMIN_PASSWORD
+      app:
+        user: migration_app
+        password_env: MIGRATION_AWS_APP_PASSWORD
+      cdc:
+        user: migration_cdc
+        password_env: MIGRATION_AWS_CDC_PASSWORD
+      sink:
+        user: migration_sink
+        password_env: MIGRATION_AWS_SINK_PASSWORD
+      verify:
+        user: migration_verify
+        password_env: MIGRATION_AWS_VERIFY_PASSWORD
+    port: 5432
+    kind: rds
+  gcp:
+    host: 127.0.0.1
+    dbname: REPLACE_WITH_NEW_EMPTY_TARGET_DB
+    sslmode: disable
+    users:
+      admin:
+        user: migration_admin
+        password_env: MIGRATION_GCP_ADMIN_PASSWORD
+      app:
+        user: migration_app
+        password_env: MIGRATION_GCP_APP_PASSWORD
+      cdc:
+        user: migration_cdc
+        password_env: MIGRATION_GCP_CDC_PASSWORD
+      sink:
+        user: migration_sink
+        password_env: MIGRATION_GCP_SINK_PASSWORD
+      verify:
+        user: migration_verify
+        password_env: MIGRATION_GCP_VERIFY_PASSWORD
+    port: 5432
+    kind: self_managed
+job:
+  job_id: aws_gcp_fresh_20261107
+  source: aws
+  target: gcp
+application:
+  control_url: https://REPLACE_WITH_AWS_CONTROL_ADAPTER
+  tables:
+  - name: public.migration_demo
+    primary_key:
+    - request_id
+kafka:
+  connect_url: http://cloud-connect:8083
+cutover:
+  stage_timeout_seconds: 1800
+  poll_interval_seconds: 5
