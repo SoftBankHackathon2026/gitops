@@ -9,6 +9,7 @@ namespace: sample-app
 resources:
   - ../../base
   - service-preview.yaml
+  - serviceaccount.yaml
 patches:
   # active Service만 HTTP로 공개한다. preview와 Rollouts의 selector 관리는 유지한다.
   - path: service-public.yaml
@@ -22,7 +23,54 @@ patches:
           - name: DEPLOY_ENV
             value: gcp
           - name: DEPLOY_REGION
-            value: asia-northeast1
+            value: asia-northeast3
+          # Secret sample-app-db 는 이 overlay 밖에서 준비한다. 값은
+          # postgres://<앱 계정>:<비밀번호>@127.0.0.1:5432/migration_demo 형식이다.
+          - name: DATABASE_URL
+            valueFrom:
+              secretKeyRef:
+                name: sample-app-db
+                key: database-url
+          # 앱과 프록시 사이의 loopback 구간만 평문이다. 프록시가 Cloud SQL 까지 암호화한다.
+          - name: PGSSLMODE
+            value: disable
+          - name: APP_CONTROL_FILE
+            value: /app-control/control.json
+          - name: REQUEST_API_AUTH
+            value: required
+          - name: REQUEST_API_TOKEN
+            valueFrom:
+              secretKeyRef:
+                name: sample-app-api-token
+                key: token
+                optional: true
+      # 앱은 어떤 TLS 모드에서도 호스트 이름까지 검증하는데, Cloud SQL 은 사설 IP 로만
+      # 열려 있어 직접 접속 대신 Auth Proxy 를 쓴다. 앱은 시작할 때 스키마를 만들지 않는다.
+      - op: add
+        path: /spec/template/spec/serviceAccountName
+        value: sample-app
+      - op: add
+        path: /spec/template/spec/containers/-
+        value:
+          name: cloud-sql-proxy
+          image: gcr.io/cloud-sql-connectors/cloud-sql-proxy:2.14.3
+          args:
+            - --private-ip
+            - --address=127.0.0.1
+            - --port=5432
+            - ghost-project-513812:asia-northeast3:oneaction-dev-review
+          securityContext:
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+          resources:
+            requests:
+              cpu: 25m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 64Mi
       # 🔴 수동 승격이다 (2026-10-10 팀 합의, 박찬건 19:51 확인).
       #
       # autoPromotionEnabled: false 면 그린이 Ready 된 뒤 **사람이 승격할 때까지 멈춘다.**

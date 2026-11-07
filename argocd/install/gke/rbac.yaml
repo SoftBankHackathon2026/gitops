@@ -16,9 +16,9 @@ rules:
   - apiGroups: ["*"]
     resources: ["*"]
     verbs: [get, list, watch]
-  # 현재 DB 없는 sample-app 선언에 필요한 쓰기만 허용한다.
+  # sample-app 선언에 필요한 쓰기만 허용한다. Secret 쓰기는 주지 않는다.
   - apiGroups: [""]
-    resources: [services]
+    resources: [services, configmaps, serviceaccounts]
     verbs: [create, update, patch, delete]
   - apiGroups: [argoproj.io]
     resources: [rollouts, analysistemplates]
