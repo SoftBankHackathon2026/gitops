@@ -108,9 +108,6 @@ patches:
               - name: BAO_TOKEN
                 valueFrom:
                   secretKeyRef: {name: sample-app-openbao, key: token}
-              - name: BASE_DATABASE_URL
-                valueFrom:
-                  secretKeyRef: {name: sample-app-db, key: database-url}
               - name: OUTPUT_FILE
                 value: /run/db/database-url
             volumeMounts:
