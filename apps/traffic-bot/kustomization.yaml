@@ -10,4 +10,4 @@ resources:
   - bot.yaml
 images:
   - name: docker.io/kty1021/sample-app
-    newTag: ecbc8bba22f8848bc3584a72713d6930cf22edce
+    newTag: 8624c93d6feb17282ecd4d70b7e9e1344232f313
