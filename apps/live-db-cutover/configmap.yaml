@@ -373,7 +373,7 @@ data:
             user: migration_verify
             password_env: MIGRATION_VERIFY_PASSWORD
     job:
-      job_id: rehearsal_durable_001
+      job_id: rehearsal_durable_002   # _001 은 2026-11-07 옛 러너 이미지(접수 제어 없음)로 NEEDS_RECOVERY, 원복 완료
       source: onprem_return
       target: rehearsal
       table: public.migration_demo
