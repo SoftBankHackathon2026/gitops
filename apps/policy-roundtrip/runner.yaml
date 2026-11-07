@@ -1,0 +1,103 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: policy-roundtrip
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: policy-roundtrip
+  template:
+    metadata:
+      labels:
+        app: policy-roundtrip
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      affinity:
+        podAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchLabels:
+                app.kubernetes.io/name: db-insert-worker
+            topologyKey: kubernetes.io/hostname
+      containers:
+      - name: runner
+        image: ghcr.io/softbankhackathon2026/migration-tools:80a0e773ed311bb9584f9b7f0a8af8a0c7436f35
+        command:
+        - python
+        - -c
+        - import time; time.sleep(2147483647)
+        env:
+        - name: MIGRATION_CONFIG
+          value: /etc/live-cutover/config.yaml
+        - name: MIGRATION_ADMIN_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: review-db-credentials
+              key: password
+        - name: MIGRATION_AWS_ADMIN_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: migration-aws-admin
+              key: password
+        - name: MIGRATION_APP_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: migration-db-credentials
+              key: app_password
+        - name: MIGRATION_CDC_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: migration-db-credentials
+              key: cdc_password
+        - name: MIGRATION_SINK_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: migration-db-credentials
+              key: sink_password
+        - name: MIGRATION_VERIFY_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: migration-db-credentials
+              key: verify_password
+        - name: POLICY_OPA_URL
+          value: http://migration-policy:8181
+        volumeMounts:
+        - name: config
+          mountPath: /etc/live-cutover
+          readOnly: true
+        - name: state
+          mountPath: /var/lib/worker
+        - name: tmp
+          mountPath: /tmp
+        resources:
+          requests:
+            cpu: 50m
+            memory: 96Mi
+          limits:
+            cpu: 300m
+            memory: 512Mi
+        securityContext:
+          readOnlyRootFilesystem: true
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+      volumes:
+      - name: config
+        configMap:
+          name: policy-roundtrip-config
+      - name: state
+        persistentVolumeClaim:
+          claimName: db-insert-worker-state
+      - name: tmp
+        emptyDir: {}
