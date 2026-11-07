@@ -22,13 +22,7 @@ spec:
         fsGroup: 10001
         seccompProfile:
           type: RuntimeDefault
-      affinity:
-        podAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-          - labelSelector:
-              matchLabels:
-                app.kubernetes.io/name: db-insert-worker
-            topologyKey: kubernetes.io/hostname
+      # local-path PVC의 PV nodeAffinity가 배치 노드를 결정한다.
       containers:
       - name: runner
         image: ghcr.io/softbankhackathon2026/migration-tools:80a0e773ed311bb9584f9b7f0a8af8a0c7436f35
