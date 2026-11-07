@@ -19,6 +19,10 @@ patches:
       kind: Rollout
       name: sample-app
     patch: |-
+      - op: add
+        path: /spec/template/metadata/annotations
+        value:
+          ghost.dev/analysis-retry: "2026-11-07-connection-retry"
       - op: replace
         path: /spec/template/spec/containers/0/env
         value:
