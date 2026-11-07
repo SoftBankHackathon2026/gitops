@@ -1,0 +1,11 @@
+# 데모 트래픽 제어 에이전트(apps/demo-traffic-agent)가 봇의 생성 스위치(GET /control,
+# POST /control/generation)에 닿는 클러스터 내부 주소. metrics 포트를 그대로 쓴다.
+# 스위치는 BOT_CONTROL_TOKEN 이 있는 봇 이미지(sample-app PR #12)부터 동작한다. 그 전에는 /control 이 404 다.
+apiVersion: v1
+kind: Service
+metadata:
+  name: traffic-bot-control
+spec:
+  selector: {app: traffic-bot}
+  ports:
+    - {name: metrics, port: 9091, targetPort: metrics}
