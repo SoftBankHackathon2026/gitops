@@ -31,7 +31,7 @@ spec:
               topologyKey: kubernetes.io/hostname
       containers:
         - name: runner
-          image: ghcr.io/softbankhackathon2026/migration-tools:e262471381a72794fb3a14d957596d81477cf3ac
+          image: ghcr.io/softbankhackathon2026/migration-tools:1d80b61d08f05f91886369f7b973ab176e751503
           command: [python, /opt/reporter/fleet_reporter.py]
           args: [--job-id, durable_forward_001, --state-dir, /var/lib/worker, --interval, "5", --execute-commands]
           env:
