@@ -170,8 +170,24 @@ def handler(adapter):
     return Handler
 
 
+def validate_alignment(targets, config):
+    # The app health check must refer to the DB that the master actually migrates.
+    names = {config['job']['source'], config['job']['target']}
+    if not names.issubset(targets):
+        raise ControlError('APP_TARGETS_MISSING')
+    for name in names:
+        expected = config['targets'][name]['dbname']
+        if expected.startswith('REPLACE_') or targets[name]['database'] != expected:
+            raise ControlError('APP_DATABASE_MISMATCH')
+    if targets[config['job']['source']]['url'] == targets[config['job']['target']]['url']:
+        raise ControlError('APP_ENDPOINTS_IDENTICAL')
+
+
 def main():
     targets = json.loads(os.environ['CLOUD_APP_TARGETS'])
+    import yaml
+    with open('/etc/cloud-migration/config.yaml') as stream:
+        validate_alignment(targets, yaml.safe_load(stream))
     adapter = Adapter(os.environ['INGRESS_CONTROL_URL'], os.environ['INGRESS_CONTROL_TOKEN'], targets)
     server = ThreadingHTTPServer(('127.0.0.1', 8081), handler(adapter))
     if sys.argv[1:] == ['initialize']:

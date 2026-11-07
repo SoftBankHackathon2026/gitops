@@ -32,8 +32,8 @@ GCP Secret, DB 역할, SG/네트워크, 실제 프록시 인증과 앱 제어 �
 - 최종 base25 / AWS active26 / GCP edge3 / AWS root3 리소스 렌더 PASS.
 - base의 모든 workload replicas=0, 세 Job suspend=true/backoffLimit0, Secret 값 없음.
   active는 큐·복제 도구·ALB만 활성화하며 봇0/Job suspended 유지 확인.
-- 앱 제어 어댑터 단위 테스트9 PASS: pause/drain/epoch/target 멱등성, backlog가 있어도 in-flight0이면
-  drain 완료, 상태 이상/미등록 대상/동시 제어/HTTPS 미준수/health 실패 거절.
+- 앱 제어 어댑터 단위 테스트11 PASS: pause/drain/epoch/target 멱등성, backlog가 있어도 in-flight0이면
+  drain 완료, 상태 이상/미등록 대상/동시 제어/HTTPS 미준수/health 실패 거절. 앱 DB명과 마스터 DB 설정 불일치/같은 앱 endpoint도 거절.
 - `python3 tests/control_smoke.py` PASS: 배포할 sample-app 이미지 + 실제 Redis + TLS 시험 앱2개 +
   실제 tools 이미지에서 API/control 무인증 거절, AWS 초기 target, paused 중 접수 유지,
   backlog를 남긴 drain, GCP target 변경 후 queued 요청 전달 및 GET 확인.

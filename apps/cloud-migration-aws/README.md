@@ -68,6 +68,7 @@ GCP edge Application도 `.staged.yaml`이며 root에 아직 포함하지 않았�
 /status의 mode를 state로 매핑하고, /drain은 큐 전체가 아니라 진행 중 전달만 기다린다.
 /target은 paused/in_flight=0 확인 후 expected_epoch로 CAS하며, 같은 대상 재요청은 epoch를 증가시키지 않는다.
 /resume 전 /readyz·/api/info의 environment/DB·writes_paused=false를 GET으로 확인한다. 시험 INSERT는 없다.
+앱 설정의 DB명은 마스터의 source/target DB명과 일치해야 시작하며, 미입력 REPLACE 값은 거절한다.
 제어는 동시에 하나만 처리하며, 잘못된 상태·누락·접근 실패는 거절한다.
 
 `control/ingress.js`는 검증된 sample-app 이미지의 기존 Redis 전달 구현을 재사용한다.

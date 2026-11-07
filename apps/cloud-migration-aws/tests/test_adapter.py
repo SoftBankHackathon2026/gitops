@@ -76,6 +76,19 @@ class AdapterTests(unittest.TestCase):
         with self.assertRaisesRegex(m.ControlError,'TARGET_HTTPS_REQUIRED'):
             m.Adapter('http://control','test-token',self.targets)
 
+    def test_app_database_must_match_master_config(self):
+        config={'job':{'source':'aws','target':'gcp'},'targets':{'aws':{'dbname':'aws'},'gcp':{'dbname':'wrong'}}}
+        with self.assertRaisesRegex(m.ControlError,'APP_DATABASE_MISMATCH'):
+            m.validate_alignment(self.targets,config)
+        config['targets']['gcp']['dbname']='gcp'
+        m.validate_alignment(self.targets,config)
+
+    def test_same_app_endpoint_refused(self):
+        config={'job':{'source':'aws','target':'gcp'},'targets':{'aws':{'dbname':'aws'},'gcp':{'dbname':'gcp'}}}
+        self.targets['gcp']['url']=self.targets['aws']['url']
+        with self.assertRaisesRegex(m.ControlError,'APP_ENDPOINTS_IDENTICAL'):
+            m.validate_alignment(self.targets,config)
+
     def test_busy_control_rejected(self):
         self.adapter.lock.acquire()
         try:
