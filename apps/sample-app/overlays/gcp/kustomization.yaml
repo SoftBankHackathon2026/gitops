@@ -1,15 +1,17 @@
 # 손 파일 — 렌더러는 overlays/aws 만 만든다 (명세 하나 = 환경 하나, sample-app 명세는 aws).
 #
-# GKE oneaction-dev 에는 Argo Rollouts 가 없어 base 의 Rollout 을 Deployment 로 바꿔 배포한다.
-# 카나리·블루그린 시연은 온프렘과 AWS 에서 한다.
+# GCP 만 블루그린으로 배포한다. base 의 canary 를 통째로 바꾼다.
+# 🔴 GCP Application 을 처음 적용하기 전에 머지돼야 한다. canary 로 먼저 뜬 Rollout 을
+# blueGreen 으로 바꾸면 SkipSteps 문제가 생긴다 — 처음부터 blueGreen 으로 생성되게 한다.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: sample-app
 resources:
   - ../../base
+  - service-preview.yaml
   - serviceaccount.yaml
 patches:
-  # Service 를 HTTP 로 공개한다.
+  # active Service만 HTTP로 공개한다. preview와 Rollouts의 selector 관리는 유지한다.
   - path: service-public.yaml
   - target:
       kind: Rollout
@@ -69,19 +71,25 @@ patches:
             limits:
               cpu: 100m
               memory: 64Mi
-      # Rollout 전용 필드를 빼고 일반 Deployment 로 바꾼다.
-      - op: remove
-        path: /spec/progressDeadlineAbort
+      # 🔴 수동 승격이다 (2026-10-10 팀 합의, 박찬건 19:51 확인).
+      #
+      # autoPromotionEnabled: false 면 그린이 Ready 된 뒤 **사람이 승격할 때까지 멈춘다.**
+      # 데모 시나리오의 관문 ② 가 이것이다 — "사람이 확인한 뒤 한 번에 바꿉니다".
+      # 다이어그램 CI/CD 탭의 "스키마 변경 있음: 블루그린 + 수동 승격" 과도 맞는다.
+      #
+      # autoPromotionSeconds 는 넣지 않는다. enabled 가 false 면 쓰이지 않아서
+      # 남겨두면 "30초 뒤 자동" 으로 읽히는 오해만 만든다.
+      #
+      # 승격 방법: Argo CD UI 의 Rollout 에서 Promote, 또는
+      #   kubectl argo rollouts promote sample-app -n sample-app
+      #
+      # ⚠️ 멈춰 있는 동안 active(sample-app)는 옛 버전, preview(sample-app-preview)는
+      # 새 버전을 가리킨다. 10/10 실측으로 확인했다.
       - op: replace
         path: /spec/strategy
         value:
-          type: RollingUpdate
-          rollingUpdate:
-            maxSurge: 1
-            maxUnavailable: 0
-      - op: replace
-        path: /apiVersion
-        value: apps/v1
-      - op: replace
-        path: /kind
-        value: Deployment
+          blueGreen:
+            activeService: sample-app
+            previewService: sample-app-preview
+            autoPromotionEnabled: false
+            scaleDownDelaySeconds: 30
