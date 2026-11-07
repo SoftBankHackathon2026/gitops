@@ -1,5 +1,7 @@
 # Dedicated process: heavy cutover/verification must not block worker probes.
-# Deployment itself is idle; operator explicitly runs migration.cutover after preflight.
+# 러너 프로세스는 플랫폼 보고기다. 5초마다 cutover 상태를 플랫폼(platform.yubin.dev)으로 보내고,
+# 플랫폼 화면의 전환 명령(시작·승인·중단 등)을 가져가 이 컨테이너 안에서 migration.cutover 를 실행한다.
+# 명령이 없으면 아무것도 실행하지 않는다. 운영자는 지금처럼 kubectl exec 로 직접 실행할 수도 있다.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -30,9 +32,14 @@ spec:
       containers:
         - name: runner
           image: ghcr.io/softbankhackathon2026/migration-tools:e262471381a72794fb3a14d957596d81477cf3ac
-          command: [python, -c, 'import time; time.sleep(2147483647)']
+          command: [python, /opt/reporter/fleet_reporter.py]
+          args: [--job-id, forward_001, --state-dir, /var/lib/worker, --interval, "5", --execute-commands]
           env:
             - {name: MIGRATION_CONFIG, value: /etc/live-cutover/config.yaml}
+            - {name: ONEPORT_PLATFORM_URL, value: https://platform.yubin.dev}
+            - name: ONEPORT_INGEST_TOKEN
+              valueFrom:
+                secretKeyRef: {name: oneport-ingest, key: token}
             - name: MIGRATION_ADMIN_PASSWORD
               valueFrom:
                 secretKeyRef: {name: review-db-credentials, key: password}
@@ -59,6 +66,7 @@ spec:
             - {name: config, mountPath: /etc/live-cutover, readOnly: true}
             - {name: state, mountPath: /var/lib/worker}
             - {name: tmp, mountPath: /tmp}
+            - {name: reporter, mountPath: /opt/reporter, readOnly: true}
           resources:
             requests: {cpu: 50m, memory: 64Mi}
             limits: {cpu: 200m, memory: 512Mi}
@@ -73,3 +81,5 @@ spec:
           persistentVolumeClaim: {claimName: db-insert-worker-state}
         - name: tmp
           emptyDir: {}
+        - name: reporter
+          configMap: {name: oneport-fleet-reporter}
