@@ -1,0 +1,17 @@
+# 스모크 전용 Service. NotReady 파드도 포함한다.
+# DB 가 틀리면 파드는 /readyz 실패로 sample-app Service 에서 빠지고, 그 주소로는 연결 자체가 안 된다.
+# 그러면 스모크가 status=error → OPA hold 가 되어 원인(APP-01 deny)을 말하지 못한다.
+# 이 Service 로 앱의 503 DB_UNAVAILABLE 을 직접 받아 APP-01-TARGET-DB-UNREACHABLE 로 판정받는다.
+apiVersion: v1
+kind: Service
+metadata:
+  name: sample-app-smoke
+  labels:
+    app: sample-app
+spec:
+  publishNotReadyAddresses: true
+  selector:
+    app: sample-app
+  ports:
+    - port: 80
+      targetPort: 8080

@@ -1,0 +1,15 @@
+# AI 설정 수정 에이전트 (온프렘). 실행은 사람이 한다: kubectl exec deploy/ai-agent -c agent -- python -m agent run
+# Argo CD Application: argocd/onprem/ai-agent.yaml
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: hackathon
+resources:
+  - serviceaccount.yaml
+  - role.yaml
+  - remote-token.yaml
+  - configmap.yaml
+  - deployment.yaml
+images:
+  - name: ghcr.io/softbankhackathon2026/ghost-agent
+    # 자리표시자. Hackathon CI 가 만든 커밋 SHA 로 사람이 고정한다.
+    newTag: main

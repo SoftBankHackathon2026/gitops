@@ -1,0 +1,23 @@
+# Argo CD Application: 온프렘 AI 설정 수정 에이전트. 선행 조건은 apps/ai-agent/README.md.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: ai-agent
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: hackathon
+  source:
+    repoURL: https://github.com/SoftBankHackathon2026/gitops.git
+    targetRevision: main
+    path: apps/ai-agent
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: hackathon
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=false
