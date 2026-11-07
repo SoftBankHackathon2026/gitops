@@ -68,9 +68,10 @@ spec:
             - {name: tmp, mountPath: /tmp}
             - {name: db-ca, mountPath: /db-ca, readOnly: true}
             - {name: sa-token, mountPath: /var/run/secrets/kubernetes.io/serviceaccount, readOnly: true}
+          # 실측 피크 약 41MiB (제한된 컨테이너, 2026-11-06).
           resources:
-            requests: {cpu: 10m, memory: 64Mi}
-            limits: {cpu: 100m, memory: 128Mi}
+            requests: {cpu: 10m, memory: 48Mi}
+            limits: {cpu: 100m, memory: 96Mi}
           securityContext: &restricted
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
@@ -87,8 +88,11 @@ spec:
           volumeMounts:
             - {name: work, mountPath: /work}
             - {name: runner-tmp, mountPath: /tmp}
+          # 실측: 제한 없을 때 Codex 약 357MiB + runner 약 22MiB. 192MiB 에서는 OOM. 파일 캐시도 limit 에 붙는다.
+          # 가짜 키(401)까지의 값이라 실제 응답을 받는 실행은 Hackathon agent/dev/sidecar_check.sh 로 확인한다.
+          # OOM 이면 Codex 실패로 끝나고 저장소에는 쓰지 않는다.
           resources:
-            requests: {cpu: 10m, memory: 128Mi}
+            requests: {cpu: 10m, memory: 64Mi}
             limits: {cpu: 100m, memory: 512Mi}
           securityContext: *restricted
       volumes:

@@ -43,6 +43,8 @@ data:
       runner: sidecar
       shared_dir: /work
       timeout: 300
+      # 필수다. 없으면 에이전트가 시작하지 않는다 (내장 기본 모델은 도구 목록이 비어 파일을 못 읽는다).
+      model: gpt-5.5
     probe:
       sslmode: verify-full
       sslrootcert: /db-ca/ca.pem
