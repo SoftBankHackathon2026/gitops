@@ -51,7 +51,7 @@ spec:
               value: /data/ledger
             # 팀 INSERT 워커의 forward_NNN·return_NNN 과 겹치지 않게 한다. ledger 를 잃었으면 새 run_id 로 시작한다.
             - name: BOT_RUN_ID
-              value: ghost_bot_forward_001
+              value: ghost_bot_sqlite_20261107
             - name: BOT_PHASE
               value: onprem_return_live
             - name: BOT_MAX_RECORDS
