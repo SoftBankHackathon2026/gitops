@@ -1,0 +1,231 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: policy-roundtrip-config
+data:
+  config.yaml: |
+    targets:
+      onprem:
+        host: postgres
+        port: 5432
+        dbname: migration_demo
+        sslmode: require
+        admin_dbname: postgres
+        users:
+          admin:
+            user: oneaction_admin
+            password_env: MIGRATION_ADMIN_PASSWORD
+          app:
+            user: migration_app
+            password_env: MIGRATION_APP_PASSWORD
+          cdc:
+            user: migration_cdc
+            password_env: MIGRATION_CDC_PASSWORD
+          sink:
+            user: migration_sink
+            password_env: MIGRATION_SINK_PASSWORD
+          verify:
+            user: migration_verify
+            password_env: MIGRATION_VERIFY_PASSWORD
+      onprem_return:
+        host: postgres
+        port: 5432
+        dbname: migration_demo_return
+        sslmode: require
+        admin_dbname: postgres
+        users:
+          admin:
+            user: oneaction_admin
+            password_env: MIGRATION_ADMIN_PASSWORD
+          app:
+            user: migration_app
+            password_env: MIGRATION_APP_PASSWORD
+          cdc:
+            user: migration_cdc
+            password_env: MIGRATION_CDC_PASSWORD
+          sink:
+            user: migration_sink
+            password_env: MIGRATION_SINK_PASSWORD
+          verify:
+            user: migration_verify
+            password_env: MIGRATION_VERIFY_PASSWORD
+      rehearsal:
+        host: postgres
+        port: 5432
+        dbname: migration_demo_rehearsal
+        sslmode: require
+        admin_dbname: postgres
+        kind: self_managed
+        users:
+          admin:
+            user: oneaction_admin
+            password_env: MIGRATION_ADMIN_PASSWORD
+          app:
+            user: migration_app
+            password_env: MIGRATION_APP_PASSWORD
+          cdc:
+            user: migration_cdc
+            password_env: MIGRATION_CDC_PASSWORD
+          sink:
+            user: migration_sink
+            password_env: MIGRATION_SINK_PASSWORD
+          verify:
+            user: migration_verify
+            password_env: MIGRATION_VERIFY_PASSWORD
+      aws:
+        host: oneaction-review-db.cdb6j7l51obe.ap-northeast-2.rds.amazonaws.com
+        kind: rds
+        port: 5432
+        dbname: migration_demo
+        sslmode: require
+        admin_dbname: postgres
+        users:
+          admin:
+            user: oneaction_admin
+            password_env: MIGRATION_AWS_ADMIN_PASSWORD
+          app:
+            user: migration_app
+            password_env: MIGRATION_APP_PASSWORD
+          cdc:
+            user: migration_cdc
+            password_env: MIGRATION_CDC_PASSWORD
+          sink:
+            user: migration_sink
+            password_env: MIGRATION_SINK_PASSWORD
+          verify:
+            user: migration_verify
+            password_env: MIGRATION_VERIFY_PASSWORD
+    job:
+      job_id: policy_forward_20261107
+      source: onprem_return
+      target: aws
+      table: public.migration_demo
+      live_phase_before: onprem_return_live
+      live_phase_after: aws_live
+    kafka:
+      bootstrap_servers: kafka:9092
+      connect_url: http://migration-connect:8083
+      secrets_file: /opt/kafka/secrets/migration.properties
+    worker:
+      url: http://db-insert-worker:8080
+      state_dir: /var/lib/worker
+    cutover:
+      state_dir: /var/lib/worker
+      min_live_rows_after_snapshot: 10
+      min_rows_after_switch: 10
+      offset_stable_seconds: 10
+      poll_interval_seconds: 5
+      stage_timeout_seconds: 1800
+  config.return-durable.yaml: |
+    targets:
+      onprem:
+        host: postgres
+        port: 5432
+        dbname: migration_demo
+        sslmode: require
+        admin_dbname: postgres
+        users:
+          admin:
+            user: oneaction_admin
+            password_env: MIGRATION_ADMIN_PASSWORD
+          app:
+            user: migration_app
+            password_env: MIGRATION_APP_PASSWORD
+          cdc:
+            user: migration_cdc
+            password_env: MIGRATION_CDC_PASSWORD
+          sink:
+            user: migration_sink
+            password_env: MIGRATION_SINK_PASSWORD
+          verify:
+            user: migration_verify
+            password_env: MIGRATION_VERIFY_PASSWORD
+      onprem_return:
+        host: postgres
+        port: 5432
+        dbname: migration_demo_return
+        sslmode: require
+        admin_dbname: postgres
+        users:
+          admin:
+            user: oneaction_admin
+            password_env: MIGRATION_ADMIN_PASSWORD
+          app:
+            user: migration_app
+            password_env: MIGRATION_APP_PASSWORD
+          cdc:
+            user: migration_cdc
+            password_env: MIGRATION_CDC_PASSWORD
+          sink:
+            user: migration_sink
+            password_env: MIGRATION_SINK_PASSWORD
+          verify:
+            user: migration_verify
+            password_env: MIGRATION_VERIFY_PASSWORD
+      rehearsal:
+        host: postgres
+        port: 5432
+        dbname: migration_demo_rehearsal
+        sslmode: require
+        admin_dbname: postgres
+        kind: self_managed
+        users:
+          admin:
+            user: oneaction_admin
+            password_env: MIGRATION_ADMIN_PASSWORD
+          app:
+            user: migration_app
+            password_env: MIGRATION_APP_PASSWORD
+          cdc:
+            user: migration_cdc
+            password_env: MIGRATION_CDC_PASSWORD
+          sink:
+            user: migration_sink
+            password_env: MIGRATION_SINK_PASSWORD
+          verify:
+            user: migration_verify
+            password_env: MIGRATION_VERIFY_PASSWORD
+      aws:
+        host: oneaction-review-db.cdb6j7l51obe.ap-northeast-2.rds.amazonaws.com
+        kind: rds
+        port: 5432
+        dbname: migration_demo
+        sslmode: require
+        admin_dbname: postgres
+        users:
+          admin:
+            user: oneaction_admin
+            password_env: MIGRATION_AWS_ADMIN_PASSWORD
+          app:
+            user: migration_app
+            password_env: MIGRATION_APP_PASSWORD
+          cdc:
+            user: migration_cdc
+            password_env: MIGRATION_CDC_PASSWORD
+          sink:
+            user: migration_sink
+            password_env: MIGRATION_SINK_PASSWORD
+          verify:
+            user: migration_verify
+            password_env: MIGRATION_VERIFY_PASSWORD
+    job:
+      job_id: policy_return_20261107
+      source: aws
+      target: onprem_return
+      table: public.migration_demo
+      live_phase_before: aws_live
+      live_phase_after: onprem_return_live
+    kafka:
+      bootstrap_servers: kafka:9092
+      connect_url: http://migration-connect:8083
+      secrets_file: /opt/kafka/secrets/migration.properties
+    worker:
+      url: http://db-insert-worker:8080
+      state_dir: /var/lib/worker
+    cutover:
+      state_dir: /var/lib/worker
+      min_live_rows_after_snapshot: 10
+      min_rows_after_switch: 10
+      offset_stable_seconds: 10
+      poll_interval_seconds: 5
+      stage_timeout_seconds: 1800
