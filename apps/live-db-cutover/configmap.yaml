@@ -403,3 +403,19 @@ data:
         rehearsal:
           url: http://sample-app-rehearsal.hackathon.svc.cluster.local
           database: migration_demo_rehearsal
+  # 정책 증거 수집 설정 (대상 이름별). 보고기가 작업 대상에 맞는 항목을 작업별 파일로 만들어 cutover 에 넘긴다.
+  # cutover 는 정책 경계마다 RDS(읽기 전용 조회)와 대상 앱 /api/info 를 관측해 그 작업의 증거를 새로 쓴다. 비밀값은 없다.
+  policy-collectors.json: |
+    {
+      "aws": {
+        "identifier": "oneaction-review-db",
+        "region": "ap-northeast-2",
+        "approved_locations": [
+          "ap-northeast-2"
+        ],
+        "app_url": "https://sample-app.hackerthon.yubin.dev",
+        "app_environment": "aws",
+        "evidence_ttl_seconds": 60,
+        "write_wait_max_seconds": 300
+      }
+    }
