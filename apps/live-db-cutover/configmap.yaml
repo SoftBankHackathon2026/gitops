@@ -137,6 +137,20 @@ data:
       poll_interval_seconds: 5
       stage_timeout_seconds: 1800
 
+    # 접수 서비스(durable-ingress) 자동 제어. FENCING 에서 큐 pause(settled), SWITCHING 에서 대상 앱
+    # readiness 확인 뒤 /target → /resume. 이 절을 지우면 예전처럼 운영자가 port-forward 로 수동 제어한다.
+    ingress:
+      control_url: http://durable-ingress-control.hackathon.svc.cluster.local:9092
+      token_env: INGRESS_CONTROL_TOKEN      # runner.yaml 의 Secret durable-ingress-control (optional)
+      targets:
+        # job 의 target 이름 → INGRESS_TARGETS 의 이름 (apps/durable-ingress/ingress.yaml)
+        onprem_return: onprem               # 온프렘 sample-app (migration_demo_return)
+        aws: aws_db                         # 온프렘 sample-app-rds 프로세스 (RDS migration_demo)
+      app_checks:
+        aws:
+          url: http://sample-app-rds.hackathon.svc.cluster.local
+          database: migration_demo          # /api/info database.name. writes_paused=false 여야 큐를 돌린다
+
   # 리허설용. 위 config.yaml 과 targets 는 같고 job 만 onprem → rehearsal (job_id rehearsal_001,
   # slot rehearsal_001, publication rehearsal_001_pub, topic rehearsal_001.public.migration_demo).
   # 워커 파드에서 `--config /etc/migration/config.rehearsal.yaml` 로 init_db·cdc·cutover·verify 를 돌린다.

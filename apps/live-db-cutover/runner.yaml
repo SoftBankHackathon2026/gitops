@@ -51,6 +51,10 @@ spec:
             - name: MIGRATION_VERIFY_PASSWORD
               valueFrom:
                 secretKeyRef: {name: migration-db-credentials, key: verify_password}
+            # 접수 서비스 제어 API 토큰 (apps/durable-ingress 와 같은 Secret). 없으면 NetworkPolicy 만으로 보호.
+            - name: INGRESS_CONTROL_TOKEN
+              valueFrom:
+                secretKeyRef: {name: durable-ingress-control, key: token, optional: true}
           volumeMounts:
             - {name: config, mountPath: /etc/live-cutover, readOnly: true}
             - {name: state, mountPath: /var/lib/worker}

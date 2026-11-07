@@ -6,6 +6,16 @@ spec:
   selector: {app: durable-ingress}
   ports: [{name: http, port: 80, targetPort: 8080}]
 ---
+# Control API for the cutover runner only. NetworkPolicy durable-ingress-control limits 9092 to
+# the runner/worker pods; INGRESS_CONTROL_TOKEN (Secret durable-ingress-control) adds a bearer check.
+apiVersion: v1
+kind: Service
+metadata:
+  name: durable-ingress-control
+spec:
+  selector: {app: durable-ingress}
+  ports: [{name: control, port: 9092, targetPort: 9092}]
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -40,7 +50,16 @@ spec:
             - name: EKS_REQUEST_API_TOKEN
               valueFrom:
                 secretKeyRef: {name: sample-app-eks-api-token, key: token}
-          ports: [{name: http, containerPort: 8080}]
+            # cutover (migration.cutover, ingress 절) 가 큐를 pause/target/resume 한다.
+            # 수동 운영(port-forward 9092)도 그대로 가능하다.
+            - name: INGRESS_CONTROL_HOST
+              value: "0.0.0.0"
+            - name: INGRESS_CONTROL_TOKEN
+              valueFrom:
+                secretKeyRef: {name: durable-ingress-control, key: token, optional: true}
+          ports:
+            - {name: http, containerPort: 8080}
+            - {name: control, containerPort: 9092}
           readinessProbe:
             httpGet: {path: /readyz, port: http}
             timeoutSeconds: 3
