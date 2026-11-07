@@ -12,7 +12,7 @@
 이는 실행 중인 복제를 자동으로 재개하거나 같은 DB에 두 sink를 붙이지 않기 위한 초기 상태다.
 실제 배포·AWS↔GCP 통신·사용자 인수 완료를 의미하지 않는다.
 
-1. AWS SSO 갱신 후 EKS 가용 리소스, 기본 EBS StorageClass/CSI, NetworkPolicy enforcement를 확인한다.
+1. 대상 AWS 계정의 `t3underline` 프로필과 EKS 접속 허용 네트워크에서 EKS 가용 리소스, 기본 EBS StorageClass/CSI, NetworkPolicy enforcement를 확인한다.
    리허설 구성의 총 requests는 CPU 500m / 메모리 1920Mi, Kafka PVC 20Gi, 실행기 상태 PVC 2Gi다.
    비교용 /tmp는 최대 4Gi ephemeral disk다. 노드 여유/ephemeral-storage와 실제 DB 크기를 확인한다.
    **Kafka는 단일 broker/controller, 복제 계수 1이라 HA 구성이 아니다.** PVC 손실은 offset 손실이다.

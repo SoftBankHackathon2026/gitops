@@ -19,7 +19,10 @@
   Connect 내부 토픽 보존 및 `/connectors` 응답 확인. 실제 DB connector offset 복구 시험은 아니다.
 - `bash -n tests/smoke.sh`, `git diff --check`: PASS.
 
-AWS SSO 토큰 만료로 EKS StorageClass/노드 조회 실패. 클러스터 수정 없음.
+19:14 재연결 후 t3underline 프로필로 대상 계정 및 oneaction EKS ACTIVE 확인.
+기본 aws-eks 컨텍스트는 다른 클러스터를 가리키며 SSO가 만료되어 있었음.
+현재 외부 IP가 oneaction의 publicAccessCidrs에 없음을 비교 확인하여,
+실제 EKS StorageClass/노드/API 검증은 여전히 불가. 허용 목록·클러스터 수정 없음.
 현재 RDS→Cloud SQL job/기존 target/온프렘 리소스 변경 없음.
 GCP Secret, DB 역할, SG/네트워크, 실제 프록시 인증과 앱 제어 어댑터, E2E 전환은 미검증.
 단일 Kafka의 가용성·처리량·복구시간 보장 시험은 수행하지 않았다.
