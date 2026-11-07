@@ -6,6 +6,7 @@ namespace: hackathon
 resources:
   - serviceaccount.yaml
   - role.yaml
+  - remote-token.yaml
   - configmap.yaml
   - deployment.yaml
 images:
