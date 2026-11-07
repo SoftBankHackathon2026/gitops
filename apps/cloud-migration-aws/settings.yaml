@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cloud-migration-settings
+data:
+  CLOUD_SQL_INSTANCE: ghost-project-513812:asia-northeast3:oneaction-dev-review
+  CLOUD_APP_TARGETS: '{"aws":{"url":"https://sample-app.hackerthon.yubin.dev","token_env":"AWS_REQUEST_API_TOKEN","environment":"aws","database":"migration_demo"},"gcp":{"url":"https://gcp-migration.hackerthon.yubin.dev","token_env":"GCP_REQUEST_API_TOKEN","environment":"gcp","database":"REPLACE_WITH_NEW_EMPTY_TARGET_DB"}}'
+  PUBLIC_URL: https://cloud-migration.hackerthon.yubin.dev
+  CLOUD_APPROVAL_ID: ''

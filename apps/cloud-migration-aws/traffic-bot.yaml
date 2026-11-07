@@ -1,0 +1,104 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: cloud-traffic-ledger
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cloud-traffic-bot
+spec:
+  replicas: 0
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: cloud-traffic-bot
+  template:
+    metadata:
+      labels:
+        app: cloud-traffic-bot
+      annotations:
+        prometheus.io/scrape: 'true'
+        prometheus.io/port: '9091'
+    spec:
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 30
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: traffic-bot
+        image: docker.io/kty1021/sample-app:363eeb9298c1cee74d0cbc9dd5d4fb4b172b0c2e
+        command:
+        - node
+        - packages/traffic-bot/bin/traffic-bot.js
+        env:
+        - name: BOT_BASE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: cloud-migration-settings
+              key: PUBLIC_URL
+        - name: BOT_API_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: cloud-ingress-auth
+              key: api-token
+        - name: BOT_LEDGER_DIR
+          value: /data/ledger
+        - name: BOT_RUN_ID
+          value: aws_gcp_cloud_20261107
+        - name: BOT_PHASE
+          value: cloud_live
+        - name: BOT_RATE
+          value: '1'
+        - name: BOT_METRICS_PORT
+          value: '9091'
+        ports:
+        - name: metrics
+          containerPort: 9091
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: metrics
+          periodSeconds: 5
+          timeoutSeconds: 3
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: metrics
+          periodSeconds: 10
+          timeoutSeconds: 3
+          initialDelaySeconds: 20
+        volumeMounts:
+        - name: ledger
+          mountPath: /data
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            cpu: 500m
+            memory: 256Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+      volumes:
+      - name: ledger
+        persistentVolumeClaim:
+          claimName: cloud-traffic-ledger
+      nodeSelector:
+        kubernetes.io/arch: amd64
