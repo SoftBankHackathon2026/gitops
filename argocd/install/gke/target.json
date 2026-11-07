@@ -1,7 +1,7 @@
 {
-  "project": "crystal-sbh2026-gcp-1009",
-  "cluster": "tokyo-gke",
-  "zone": "asia-northeast1-a",
-  "server": "https://34.146.143.116",
-  "kubeSystemUid": "c249c507-6262-4b06-be44-ab019fa3256a"
+  "project": "ghost-project-513812",
+  "cluster": "oneaction-dev",
+  "zone": "asia-northeast3",
+  "server": "https://34.50.37.147",
+  "kubeSystemUid": "75212015-265a-4f10-952d-f8f88d14235e"
 }
