@@ -151,6 +151,15 @@ data:
           url: http://sample-app-rds.hackathon.svc.cluster.local
           database: migration_demo          # /api/info database.name. writes_paused=false 여야 큐를 돌린다
 
+    # 공용 도메인 전환. SWITCHING 에서 대상 쓰기와 접수 큐를 연 뒤 플랫폼 서버의 공용 도메인 경로를 aws 로 돌리고,
+    # VERIFYING 에서 다시 확인한다. 플랫폼 주소·토큰은 러너의 ONEPORT_PLATFORM_URL, ONEPORT_INGEST_TOKEN 을 쓴다.
+    # 경로 이름은 플랫폼 서버 Caddy 와 맞춘다 (Hackathon platform/deploy/ec2/README.md "공용 도메인 전환").
+    traffic:
+      app: sample-app
+      targets:
+        onprem_return: onprem
+        aws: aws
+
   # 리허설용. 위 config.yaml 과 targets 는 같고 job 만 onprem → rehearsal (job_id rehearsal_001,
   # slot rehearsal_001, publication rehearsal_001_pub, topic rehearsal_001.public.migration_demo).
   # 워커 파드에서 `--config /etc/migration/config.rehearsal.yaml` 로 init_db·cdc·cutover·verify 를 돌린다.
@@ -273,6 +282,11 @@ data:
       offset_stable_seconds: 10
       poll_interval_seconds: 5
       stage_timeout_seconds: 1800
+    traffic:
+      app: sample-app
+      targets:
+        aws: aws
+        onprem_return: onprem
 
   # 리허설(AWS 없이): 현재 라이브 DB(onprem_return)에서 같은 Postgres 의 migration_demo_rehearsal 로
   # 워커·CDC·DB 권한·접수 큐를 cutover 도구가 전부 자동으로 넘긴다. 러너 파드에서
