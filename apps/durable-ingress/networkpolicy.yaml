@@ -25,3 +25,20 @@ spec:
         - podSelector:
             matchLabels: {app: traffic-bot}
       ports: [{protocol: TCP, port: 8080}]
+---
+# 제어 포트 9092 는 cutover 러너와 DB 워커 파드에서만 연다. 봇·다른 파드는 접수 8080 만 본다.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: durable-ingress-control
+spec:
+  podSelector:
+    matchLabels: {app: durable-ingress}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels: {app: live-db-cutover}
+        - podSelector:
+            matchLabels: {app.kubernetes.io/name: db-insert-worker}
+      ports: [{protocol: TCP, port: 9092}]

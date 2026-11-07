@@ -34,6 +34,27 @@
 7. 봇 이미지를 같은 새 SHA로 고정하고 target ConfigMap을 `http://durable-ingress`로 변경한다.
    기존 봇 ledger를 지우지 않는다. 시험 전후 차이와 별도 run_id로 결과를 구분한다.
 
+## 자동 전환 (cutover 가 큐를 제어)
+
+`apps/live-db-cutover/configmap.yaml` 의 `ingress` 절이 있으면 `python -m migration.cutover run --approve <id>` 한 번으로
+DB 와 접수 큐가 같이 넘어간다. cutover 가 FENCING 에서 `/pause`(settled·in_flight 0 확인) 뒤 원본을 REVOKE 하고,
+SWITCHING 에서 대상 GRANT → 워커 전환 → 대상 앱 `/readyz`·`/api/info`(database 일치, writes_paused=false) 를
+기다린 뒤 `/target` → `/resume` 한다. 실패하면 큐는 paused 로 남고(SWITCHING 전이면 `abort` 가 원본으로 resume),
+SWITCHING 이후 실패는 NEEDS_RECOVERY 로 사람이 확정한다.
+
+배선: `durable-ingress-control` Service(9092) + NetworkPolicy(러너 `app=live-db-cutover`, 워커
+`app.kubernetes.io/name=db-insert-worker` 만), ingress 파드 `INGRESS_CONTROL_HOST=0.0.0.0`,
+양쪽에 Secret `durable-ingress-control`/`token`(optional) 을 `INGRESS_CONTROL_TOKEN` 으로 준다.
+토큰 Secret 은 운영자가 만든다(값은 GitOps 에 넣지 않는다):
+
+```
+read -s TOKEN; kubectl -n hackathon create secret generic durable-ingress-control --from-literal=token="$TOKEN"
+```
+
+Secret 이 없으면 NetworkPolicy 만으로 보호되고 토큰 검사는 꺼진다. 아래 수동 순서는 `ingress` 절을 지우거나
+비상시에 그대로 쓸 수 있다(제어 API 자체는 바뀌지 않았다). 자동 전환은 **실제 클러스터에서 아직 실행하지 않았다**
+(로컬 Redis+ingress+앱 통합 시험만 통과).
+
 ## 실제 전환 순서 (현재 onprem_return → aws)
 
 1. 새 job_id로 기존 migration.cutover CDC를 시작해 READY까지 준비한다. 이전 job/offset 재사용 금지.
