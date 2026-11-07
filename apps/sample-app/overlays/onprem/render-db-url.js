@@ -1,50 +1,59 @@
-// init 컨테이너. OpenBao 의 DB_HOST/PORT/NAME/USER 와 Secret sample-app-db 의 비밀번호로 DATABASE_URL 파일을 만든다.
-// 비밀번호와 토큰은 로그에 남기지 않는다.
-//
-// OpenBao 에 닿지 않거나 봉인(503)이면 Secret 의 URL 그대로 시작한다. OpenBao 는 재시작마다 수동 unseal 이 필요해
-// 봉인 때문에 공용 sample-app 이 못 뜨면 안 된다. 그 밖의 오류(토큰 거절, 값 없음)는 설정 문제이므로 실패시킨다.
-// 저장소에 틀린 값이 있으면 그 값을 그대로 쓴다. 장애 주입과 AI 수정은 이 경로로 동작한다.
 'use strict';
 const fs = require('node:fs');
 
-function fallback(reason, baseUrl, outputFile) {
-  console.warn(`경고: OpenBao 를 읽지 못해 Secret 의 DB URL 로 시작한다 (${reason}). 저장소 값이 반영되지 않았다`);
-  writeUrl(outputFile, baseUrl);
-}
-
-function writeUrl(outputFile, url) {
-  fs.rmSync(outputFile, {force: true}); // 재실행 시 0400 파일을 덮어쓸 수 없다
-  fs.writeFileSync(outputFile, url, {mode: 0o400});
-}
-
-async function main() {
-  const {BAO_ADDR, BAO_TOKEN, BAO_KV_PATH, BASE_DATABASE_URL, OUTPUT_FILE} = process.env;
-  let res;
-  try {
-    res = await fetch(`${BAO_ADDR}/v1/${BAO_KV_PATH}`, {
-      headers: {'X-Vault-Token': BAO_TOKEN},
-      redirect: 'error',
-      signal: AbortSignal.timeout(5000),
-    });
-  } catch (error) {
-    return fallback(error.name, BASE_DATABASE_URL, OUTPUT_FILE);
+// Both the native app document and PR56's current-version envelope are accepted.
+// Never fall back to an old Kubernetes Secret: a successful boot proves consumption.
+function databaseUrl(document) {
+  let values = document;
+  if (document.schema !== undefined) {
+    if (document.schema !== 'aws-openbao-secret-v1') throw Error('UNSUPPORTED_SCHEMA');
+    const value = document.values?.[document.current];
+    if (value?.kind !== 'string' || typeof value.payload !== 'string') throw Error('INVALID_CURRENT');
+    const bytes = Buffer.from(value.payload, 'base64');
+    if (bytes.toString('base64') !== value.payload) throw Error('INVALID_ENCODING');
+    try { values = JSON.parse(new TextDecoder('utf-8', {fatal: true}).decode(bytes)); }
+    catch { throw Error('INVALID_CURRENT_JSON'); }
   }
-  if (res.status === 503) return fallback('봉인', BASE_DATABASE_URL, OUTPUT_FILE);
-  if (!res.ok) throw new Error(`OpenBao HTTP ${res.status}`);
-  const values = (await res.json())?.data?.data ?? {};
-  for (const key of ['DB_HOST', 'DB_PORT', 'DB_NAME', 'DB_USER']) {
-    if (!values[key]) throw new Error(`OpenBao 값 없음: ${key}`);
+  if (!values || typeof values !== 'object') throw Error('INVALID_DOCUMENT');
+  if (typeof values.database_url === 'string') {
+    let url;
+    try { url = new URL(values.database_url); } catch { throw Error('INVALID_DATABASE_URL'); }
+    if (!['postgres:', 'postgresql:'].includes(url.protocol) || !url.hostname || !url.username || !url.password || url.pathname.length < 2) throw Error('INVALID_DATABASE_URL');
+    return url.href;
   }
-  const url = new URL(BASE_DATABASE_URL); // 비밀번호와 쿼리는 그대로 둔다
+  for (const key of ['DB_HOST', 'DB_PORT', 'DB_NAME', 'DB_USER', 'DB_PASSWORD']) {
+    if (typeof values[key] !== 'string' || !values[key]) throw Error('MISSING_DATABASE_FIELD');
+  }
+  if (!/^\d+$/.test(values.DB_PORT) || Number(values.DB_PORT) < 1 || Number(values.DB_PORT) > 65535) throw Error('INVALID_DATABASE_PORT');
+  const url = new URL('postgresql://placeholder:placeholder@localhost/database');
   url.hostname = values.DB_HOST;
-  url.port = String(values.DB_PORT);
+  url.port = values.DB_PORT;
   url.username = encodeURIComponent(values.DB_USER);
-  url.pathname = `/${encodeURIComponent(values.DB_NAME)}`;
-  writeUrl(OUTPUT_FILE, url.href);
-  console.log(`DB URL 생성: host=${values.DB_HOST} port=${values.DB_PORT} db=${values.DB_NAME} user=${values.DB_USER}`);
+  url.password = encodeURIComponent(values.DB_PASSWORD);
+  url.pathname = '/' + encodeURIComponent(values.DB_NAME);
+  return url.href;
 }
 
-main().catch((error) => {
-  console.error(`DB URL 생성 실패: ${error.message}`);
-  process.exit(1);
+async function main(env = process.env, request = fetch) {
+  const {BAO_ADDR, BAO_TOKEN, BAO_KV_PATH, OUTPUT_FILE} = env;
+  if (!BAO_ADDR || !BAO_TOKEN || !BAO_KV_PATH || !OUTPUT_FILE) throw Error('MISSING_CONFIGURATION');
+  // Remove any previous attempt's credential before making a new observation.
+  fs.rmSync(OUTPUT_FILE, {force: true});
+  let response;
+  try {
+    response = await request(`${BAO_ADDR}/v1/${BAO_KV_PATH}`, {
+      headers: {'X-Vault-Token': BAO_TOKEN}, redirect: 'error', signal: AbortSignal.timeout(5000),
+    });
+  } catch { throw Error('OPENBAO_UNAVAILABLE'); }
+  if (!response.ok) throw Error('OPENBAO_HTTP_' + response.status);
+  let document;
+  try { document = (await response.json()).data.data; } catch { throw Error('INVALID_RESPONSE'); }
+  const url = databaseUrl(document);
+  fs.writeFileSync(OUTPUT_FILE, url, {mode: 0o400, flag: 'wx'});
+  console.log('DB credential loaded from OpenBao current value; fallback disabled');
+}
+if (require.main === module) main().catch(() => {
+  // Never print upstream exceptions, URLs or response bodies containing secrets.
+  console.error('OpenBao credential initialization failed'); process.exitCode = 1;
 });
+module.exports = {databaseUrl, main};
