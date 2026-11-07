@@ -8,6 +8,7 @@ commonLabels:
 resources:
   - target-configmap.yaml
   - bot.yaml
+  - control-service.yaml
 images:
   - name: docker.io/kty1021/sample-app
     newTag: beaea996a599e1862bddd0163a62c508d5f6c21e

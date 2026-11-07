@@ -1,0 +1,13 @@
+# 데모 트래픽 제어 온프렘 에이전트 (설계: Hackathon demo/traffic-control/DESIGN.md).
+# GKE demo-traffic-control 서버로 바깥 방향으로만 붙어, 사람이 누른 명령만 워커·traffic-bot 생성 스위치에 전달한다.
+# agent.py 원본은 Hackathon demo/traffic-control/agent/agent.py (커밋 497331a). 고칠 때는 원본과 같이 바꾼다.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: hackathon
+commonLabels:
+  app.kubernetes.io/part-of: migration
+resources:
+  - deployment.yaml
+configMapGenerator:
+  - name: demo-traffic-agent-script
+    files: [agent.py]
