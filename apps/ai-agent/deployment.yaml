@@ -27,6 +27,8 @@ spec:
     spec:
       serviceAccountName: ai-agent
       automountServiceAccountToken: false
+      nodeSelector:
+        kubernetes.io/hostname: k3s-worker
       securityContext:
         runAsNonRoot: true
         runAsUser: 10001  # 이미지 USER agent

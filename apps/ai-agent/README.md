@@ -28,3 +28,4 @@ kubectl -n hackathon exec deploy/ai-agent -c agent -- python -m agent status [ru
 - 스모크는 `target_only` 다. 대상 앱의 DB 조회만 보며 복제·쓰기는 검증하지 않는다. 보고에도 그렇게 적힌다.
 - `target_db_exposure`·`target_location` 은 수집기가 없어 설정에 선언한 값이다 (`source: agent.declared-config`). 실제 관측이 아니다.
 - 실행 기록은 emptyDir 에 있어 파드가 재시작되면 사라진다. PVC 를 만들 storage 쿼터가 없다.
+- 파드는 `k3s-worker` 에만 뜬다(`nodeSelector`). 마스터는 메모리 4GiB 에 이미 79% 를 쓰고 있어 codex-runner(최대 약 300MiB)가 올라가면 OOM 위험이 있다.
