@@ -8,3 +8,6 @@ resources:
 configMapGenerator:
   - name: live-db-rds-trust
     files: [rds-ca.pem]
+  # 플랫폼 보고기. 원본은 Hackathon 레포 platform/deploy/onprem/fleet_reporter.py
+  - name: oneport-fleet-reporter
+    files: [fleet_reporter.py]
