@@ -37,14 +37,14 @@ kubectl -n hackathon exec deploy/ai-agent -c agent -- python -m agent status [ru
 
 - 호스트는 kube API 로만 들어온다. `kubectl port-forward` 로 `migration-policy`·`openbao`·`sample-app-smoke`·`postgres` 에 닿고, Rollout 을 재시작한다.
 - 그래서 Role 에 `pods/portforward` 와 위 4개 Service 조회를 더했다.
-- 토큰은 `remote-token.yaml` 의 Secret `ai-agent-remote-token` 이다. ServiceAccount `ai-agent` 의 토큰이라 권한은 이 Role 그대로다.
+- 토큰은 `kubectl create token` 으로 만든다. Argo CD 설정이 Secret 을 관리 대상에서 빼서(`resource.exclusions`) 토큰 Secret 을 gitops 로 둘 수 없다. ServiceAccount `ai-agent` 의 토큰이라 권한은 이 Role 그대로고, 30일 뒤 만료된다.
 - 원격 호스트에 넣을 파일 만들기 (값을 출력하지 않는다):
 
 ```sh
 export KUBECONFIG=~/.kube/oneport-onprem.yaml
 out=$(mktemp -d); umask 077
-kubectl -n hackathon get secret ai-agent-remote-token -o jsonpath='{.data.token}' | base64 -d >"$out/kube-token"
-kubectl -n hackathon get secret ai-agent-remote-token -o jsonpath='{.data.ca\.crt}' | base64 -d >"$out/kube-ca.crt"
+kubectl -n hackathon create token ai-agent --duration=720h >"$out/kube-token"
+kubectl config view --raw --minify -o jsonpath='{.clusters[0].cluster.certificate-authority-data}' | base64 -d >"$out/kube-ca.crt"
 server=$(kubectl config view --minify -o jsonpath='{.clusters[0].cluster.server}')
 kubectl config --kubeconfig "$out/kubeconfig" set-cluster onprem --server "$server" --certificate-authority /etc/oneport-agent/kube-ca.crt >/dev/null
 kubectl config --kubeconfig "$out/kubeconfig" set-credentials ai-agent --token "$(cat "$out/kube-token")" >/dev/null
@@ -53,4 +53,5 @@ kubectl config --kubeconfig "$out/kubeconfig" use-context ai-agent >/dev/null
 echo "$out"   # 이 폴더의 세 파일을 호스트 /etc/oneport-agent 로 옮기고 지운다
 ```
 
-- 토큰을 회수하려면 Secret 을 지운다. 클러스터 안 `deploy/ai-agent` 와 원격 watch 를 같이 켜 둘 수는 있지만, 한쪽만 쓰는 편이 기록을 보기 쉽다. 쓰기는 OpenBao cas 로 겹치지 않는다.
+- 지금은 원격 실행만 쓴다. 클러스터 안 `deploy/ai-agent` 는 `replicas: 0` 이다. 다시 쓰려면 Secret `ai-agent-credentials` 를 만든 뒤 1 로 올린다.
+- 토큰은 만료(30일)로 끝난다. 바로 끊으려면 ServiceAccount 를 다시 만들거나 RoleBinding 을 지운다. 쓰기는 OpenBao cas 로 겹치지 않는다.
