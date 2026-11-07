@@ -1,4 +1,5 @@
-# Argo CD Application: INSERT 워커 (초당 1건을 현재 활성 DB 에 쓰는 단일 인스턴스).
+# Argo CD Application: 퇴역한 INSERT 워커의 공유 설정·PVC 보존.
+# Deployment/Service는 제거한다. Application 삭제는 공유 PVC도 지우므로 금지.
 #
 # 🔴 선행 조건: Secret migration-db-credentials (app_password 키), 그리고
 #    migration-db-init 가 migration_demo DB 와 migration_app 역할을 만들어 둔 상태.
