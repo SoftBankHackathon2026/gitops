@@ -6,7 +6,7 @@
 #
 # overlays/local 과 다른 점
 #   - 네임스페이스가 sample-app 이 아니라 hackathon 이다 (AppProject hackathon 이 hackathon 만 허용).
-#   - Ingress 가 없다. 온프렘 클러스터에서는 클러스터 안 Service 로만 본다.
+#   - Ingress(ingress.yaml)는 홈랩 Traefik 용이다. 밖에서는 플랫폼 서버 Caddy 가 HTTPS 를 맡아 이 호스트로 넘긴다.
 # 🔴 AnalysisTemplate 은 여기 없다. ../../analysis/onprem 을 Application 의 두 번째 소스로 가져간다.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
@@ -15,6 +15,7 @@ resources:
   - ../../base
   - service-canary.yaml
   - service-smoke.yaml
+  - ingress.yaml
 configurations:
   - rollout-kustomizeconfig.yaml
 configMapGenerator:
