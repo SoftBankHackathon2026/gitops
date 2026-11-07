@@ -54,6 +54,9 @@ spec:
             - name: MIGRATION_APP_PASSWORD
               valueFrom:
                 secretKeyRef: {name: migration-db-credentials, key: app_password}
+            # 전환 중 재시작 복구: 실패 요청을 영속 큐에 반환하고 ERROR에서 대기. 복구 후 제거.
+            - name: WORKER_MAX_CONSECUTIVE_FAILURES
+              value: "1"
             - name: WORKER_RATE
               value: "1"
             # 데모 한 번의 식별자. 새로 시작할 때 바꾼다 (요청 기록의 run_id 컬럼).
