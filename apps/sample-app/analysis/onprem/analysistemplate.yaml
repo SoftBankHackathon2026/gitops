@@ -45,7 +45,20 @@ spec:
                         # 카나리 전용 Service 를 본다 (overlays/onprem/service-canary.yaml). stable 과 섞이지 않는다.
                         # wget 은 HTTP 오류(503 DB_UNAVAILABLE 등)면 실패한다. 그 위에 세 가지를 본다:
                         #   app 이름 / database.name 이 있음(DB 조회 성공) / write_control.healthy=true(제어 파일 정상)
-                        body=$(wget -q -O - -T 5 http://sample-app-canary.hackathon.svc.cluster.local/api/info)
+                        # 연결 실패만 잠깐 재시도한다. 2026-11-07 재시도에서 새로 뜬 Job 파드는 시작 1초 안에
+                        # Connection refused 로 죽었고, 같은 때 같은 노드의 기존 파드는 이 Service 에서 200 을 받았다.
+                        # 새 파드의 네트워크 정책 반영 전에 연결한 것으로 추정한다. HTTP 오류는 재시도하지 않는다.
+                        attempt=1
+                        until body=$(wget -q -O - -T 5 http://sample-app-canary.hackathon.svc.cluster.local/api/info 2>&1); do
+                          echo "시도 $attempt: $body"
+                          case "$body" in
+                            *"can't connect to remote host"*) ;;
+                            *) exit 1 ;;
+                          esac
+                          [ "$attempt" -lt 10 ] || exit 1
+                          attempt=$((attempt + 1))
+                          sleep 2
+                        done
                         echo "$body" | head -c 300; echo
                         echo "$body" | grep -q '"app":"sample-app"'
                         echo "$body" | grep -Eq '"database":\{"name":"[^"]+"'
