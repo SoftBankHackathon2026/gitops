@@ -78,3 +78,9 @@
 - op: replace
   path: /spec/progressDeadlineSeconds
   value: 300
+
+# Recreate consumers after the verified secret-store transfer; values stay out of Git.
+- op: add
+  path: /spec/template/metadata/annotations
+  value:
+    ghost.dev/secret-consumption-check: "2026-11-07-openbao-to-aws"
