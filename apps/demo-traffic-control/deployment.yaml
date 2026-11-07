@@ -1,0 +1,111 @@
+# 화면 서버 + 에이전트를 한 파드에 둔다. 에이전트는 같은 파드의 127.0.0.1:8080 으로 보고하고 명령을 가져가
+# 워커·traffic-bot 의 생성 스위치를 부른다. 사람이 누른 명령만 실행하고, 전환이 진행 중이면 거절한다.
+#
+# Secret demo-traffic-control 은 운영자가 만든다(값은 GitOps 에 넣지 않는다, 각 32자 이상):
+#   operator_key       화면에서 버튼을 누를 때 넣는 키
+#   agent_key          서버와 에이전트가 서로 확인하는 키
+#   bot_control_token  traffic-bot 의 BOT_CONTROL_TOKEN 과 같은 값(봇 이미지가 스위치를 지원한 뒤 쓰인다)
+#
+# 워커 PVC 를 붙여 cutover.sqlite3 로 "전환 진행 중" 잠금을 판단한다. 에이전트는 SQLite 를 mode=ro 로만
+# 연다. 마운트를 readOnly 로 하지 않는 이유: WAL 모드 DB 는 다른 프로세스가 열고 있지 않으면 -shm 을
+# 만들 수 있어야 열린다(읽기 전용 마운트에서는 unable to open database file → 늘 잠금).
+# RWO local-path 라 워커와 같은 노드에 둔다(live-db-cutover 러너와 같은 방식).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo-traffic-control
+spec:
+  # 명령 대기열과 nonce 를 메모리에 두므로 1개여야 한다.
+  replicas: 1
+  strategy: {type: Recreate}
+  selector:
+    matchLabels: {app: demo-traffic-control}
+  template:
+    metadata:
+      labels: {app: demo-traffic-control}
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile: {type: RuntimeDefault}
+      affinity:
+        podAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchLabels:
+                  app.kubernetes.io/name: db-insert-worker
+              topologyKey: kubernetes.io/hostname
+      containers:
+        - name: server
+          image: docker.io/library/node:22.23.1-alpine
+          command: [node, /app/server.js]
+          ports:
+            - {name: http, containerPort: 8080}
+          env:
+            - {name: HOST, value: "0.0.0.0"}
+            - {name: PORT, value: "8080"}
+            - {name: NODE_ENV, value: production}
+            - name: OPERATOR_KEY
+              valueFrom:
+                secretKeyRef: {name: demo-traffic-control, key: operator_key}
+            - name: AGENT_KEY
+              valueFrom:
+                secretKeyRef: {name: demo-traffic-control, key: agent_key}
+          volumeMounts:
+            - {name: code, mountPath: /app, readOnly: true}
+          readinessProbe:
+            httpGet: {path: /healthz, port: http}
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: {path: /healthz, port: http}
+            periodSeconds: 20
+          resources:
+            requests: {cpu: 10m, memory: 48Mi}
+            limits: {cpu: 200m, memory: 128Mi}
+          securityContext:
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            capabilities: {drop: [ALL]}
+        - name: agent
+          image: ghcr.io/softbankhackathon2026/migration-tools:1d80b61d08f05f91886369f7b973ab176e751503
+          command: [python, -I, /app/agent.py]
+          env:
+            - {name: CONTROL_URL, value: "http://127.0.0.1:8080"}
+            - name: AGENT_KEY
+              valueFrom:
+                secretKeyRef: {name: demo-traffic-control, key: agent_key}
+            - name: BOT_CONTROL_TOKEN
+              valueFrom:
+                secretKeyRef: {name: demo-traffic-control, key: bot_control_token, optional: true}
+            - {name: WORKER_URL, value: "http://db-insert-worker:8080"}
+            - {name: BOT_CONTROL_URL, value: "http://traffic-bot-control:9091"}
+            - {name: CONNECT_URL, value: "http://migration-connect:8083"}
+            - {name: CUTOVER_DB, value: /var/lib/worker/cutover.sqlite3}
+          volumeMounts:
+            - {name: code, mountPath: /app, readOnly: true}
+            - {name: state, mountPath: /var/lib/worker}
+          resources:
+            requests: {cpu: 10m, memory: 32Mi}
+            limits: {cpu: 100m, memory: 128Mi}
+          securityContext:
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            capabilities: {drop: [ALL]}
+      volumes:
+        # 원본 디렉터리 구조(server.js, lib/, public/)를 items 경로로 되살린다.
+        - name: code
+          configMap:
+            name: demo-traffic-control-code
+            items:
+              - {key: server.js, path: server.js}
+              - {key: auth.js, path: lib/auth.js}
+              - {key: control.js, path: lib/control.js}
+              - {key: index.html, path: public/index.html}
+              - {key: app.js, path: public/app.js}
+              - {key: hmac.js, path: public/hmac.js}
+              - {key: agent.py, path: agent.py}
+        - name: state
+          persistentVolumeClaim:
+            claimName: db-insert-worker-state
