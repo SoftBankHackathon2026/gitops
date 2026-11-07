@@ -7,5 +7,6 @@ resources:
   - networkpolicy.yaml
 images:
   - name: docker.io/kty1021/sample-app
-    # sample-app PR #5 merge; merge GitOps only after publication is verified.
-    newTag: ecbc8bba22f8848bc3584a72713d6930cf22edce
+    # sample-app PR #9 merge (control API bind/token/port env). Rollout restarts the
+    # ingress paused: merge only when no cutover job is running, then POST /resume.
+    newTag: 363eeb9298c1cee74d0cbc9dd5d4fb4b172b0c2e
