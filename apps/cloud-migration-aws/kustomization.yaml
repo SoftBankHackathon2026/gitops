@@ -7,6 +7,12 @@ resources:
 - connect.yaml
 - runner.yaml
 - networkpolicy.yaml
+- redis.yaml
+- ingress.yaml
+- traffic-bot.yaml
+- copy-job.yaml
+- initialize-job.yaml
+- approve-job.yaml
 configMapGenerator:
 - name: cloud-migration-rds-ca
   files:
@@ -14,3 +20,7 @@ configMapGenerator:
 - name: cloud-migration-config
   files:
   - config.yaml=config.cloud.yaml
+- name: cloud-control
+  files:
+  - control/adapter.py
+  - control/ingress.js

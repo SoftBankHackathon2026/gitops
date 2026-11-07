@@ -7,8 +7,18 @@ spec:
   policyTypes:
   - Ingress
   - Egress
-  ingress:
-  - from: &id001
+  ingress: []
+  egress:
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: kube-system
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
+  - to:
     - podSelector:
         matchLabels:
           app: cloud-connect
@@ -25,24 +35,6 @@ spec:
       port: 9093
     - protocol: TCP
       port: 8083
-  egress:
-  - to:
-    - namespaceSelector:
-        matchLabels:
-          kubernetes.io/metadata.name: kube-system
-    ports:
-    - protocol: UDP
-      port: 53
-    - protocol: TCP
-      port: 53
-  - to: *id001
-    ports:
-    - protocol: TCP
-      port: 9092
-    - protocol: TCP
-      port: 9093
-    - protocol: TCP
-      port: 8083
   - ports:
     - protocol: TCP
       port: 443
@@ -50,3 +42,116 @@ spec:
       port: 3307
     - protocol: TCP
       port: 5432
+  - to:
+    - podSelector:
+        matchLabels:
+          app: cloud-redis
+    ports:
+    - protocol: TCP
+      port: 6379
+  - to:
+    - podSelector:
+        matchLabels:
+          app: cloud-ingress
+    ports:
+    - protocol: TCP
+      port: 9092
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: kafka-clients
+spec:
+  podSelector:
+    matchLabels:
+      app: cloud-kafka
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: cloud-kafka
+    - podSelector:
+        matchLabels:
+          app: cloud-connect
+    ports:
+    - protocol: TCP
+      port: 9092
+    - protocol: TCP
+      port: 9093
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: connect-control
+spec:
+  podSelector:
+    matchLabels:
+      app: cloud-connect
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: cloud-runner
+    ports:
+    - protocol: TCP
+      port: 8083
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: redis-client
+spec:
+  podSelector:
+    matchLabels:
+      app: cloud-redis
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: cloud-ingress
+    ports:
+    - protocol: TCP
+      port: 6379
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: ingress-control
+spec:
+  podSelector:
+    matchLabels:
+      app: cloud-ingress
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: cloud-runner
+    ports:
+    - protocol: TCP
+      port: 9092
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: ingress-public
+spec:
+  podSelector:
+    matchLabels:
+      app: cloud-ingress
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - ipBlock:
+        cidr: 0.0.0.0/0
+    ports:
+    - protocol: TCP
+      port: 8080

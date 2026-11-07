@@ -1,0 +1,36 @@
+apiVersion: networking.gke.io/v1
+kind: ManagedCertificate
+metadata:
+  name: cloud-migration-app
+spec:
+  domains: [gcp-migration.hackerthon.yubin.dev]
+---
+apiVersion: networking.gke.io/v1beta1
+kind: FrontendConfig
+metadata:
+  name: cloud-migration-app
+spec:
+  redirectToHttps:
+    enabled: true
+    responseCodeName: MOVED_PERMANENTLY_DEFAULT
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: cloud-migration-app
+  annotations:
+    kubernetes.io/ingress.class: gce
+    kubernetes.io/ingress.global-static-ip-name: ghost-cloud-migration-app
+    networking.gke.io/managed-certificates: cloud-migration-app
+    networking.gke.io/v1beta1.FrontendConfig: cloud-migration-app
+spec:
+  rules:
+    - host: gcp-migration.hackerthon.yubin.dev
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: sample-app
+                port: {number: 80}

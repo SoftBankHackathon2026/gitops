@@ -1,4 +1,3 @@
-# Set roles and endpoints after owner reconciliation. Never reuse the active job or populated target.
 targets:
   aws:
     host: oneaction-review-db.cdb6j7l51obe.ap-northeast-2.rds.amazonaws.com
@@ -49,7 +48,7 @@ job:
   source: aws
   target: gcp
 application:
-  control_url: https://REPLACE_WITH_AWS_CONTROL_ADAPTER
+  control_url: http://127.0.0.1:8081
   tables:
   - name: public.migration_demo
     primary_key:

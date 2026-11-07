@@ -1,0 +1,117 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: cloud-ingress
+spec:
+  selector:
+    app: cloud-ingress
+  ports:
+  - name: http
+    port: 80
+    targetPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cloud-ingress-control
+spec:
+  selector:
+    app: cloud-ingress
+  ports:
+  - name: http
+    port: 9092
+    targetPort: 9092
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cloud-ingress
+spec:
+  replicas: 0
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: cloud-ingress
+  template:
+    metadata:
+      labels:
+        app: cloud-ingress
+    spec:
+      nodeSelector:
+        kubernetes.io/arch: amd64
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: ingress
+        image: docker.io/kty1021/sample-app:363eeb9298c1cee74d0cbc9dd5d4fb4b172b0c2e
+        command:
+        - node
+        - /opt/cloud-control/ingress.js
+        env:
+        - name: REDIS_URL
+          value: redis://cloud-redis:6379
+        - name: INGRESS_INITIAL_TARGET
+          value: aws
+        - name: INGRESS_TARGETS
+          valueFrom:
+            configMapKeyRef:
+              name: cloud-migration-settings
+              key: CLOUD_APP_TARGETS
+        - name: INGRESS_API_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: cloud-ingress-auth
+              key: api-token
+        - name: INGRESS_CONTROL_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: cloud-ingress-auth
+              key: control-token
+        - name: AWS_REQUEST_API_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: cloud-ingress-auth
+              key: aws-token
+        - name: GCP_REQUEST_API_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: cloud-ingress-auth
+              key: gcp-token
+        ports:
+        - containerPort: 8080
+        - containerPort: 9092
+        volumeMounts:
+        - name: cloud-control
+          mountPath: /opt/cloud-control
+          readOnly: true
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: 8080
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 256Mi
+      volumes:
+      - name: cloud-control
+        configMap:
+          name: cloud-control

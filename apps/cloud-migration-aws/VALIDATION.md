@@ -26,3 +26,25 @@
 현재 RDS→Cloud SQL job/기존 target/온프렘 리소스 변경 없음.
 GCP Secret, DB 역할, SG/네트워크, 실제 프록시 인증과 앱 제어 어댑터, E2E 전환은 미검증.
 단일 Kafka의 가용성·처리량·복구시간 보장 시험은 수행하지 않았다.
+
+## 클라우드 전체 경로 확장 — 19:30 추가 검증
+
+- 최종 base25 / AWS active26 / GCP edge3 / AWS root3 리소스 렌더 PASS.
+- base의 모든 workload replicas=0, 세 Job suspend=true/backoffLimit0, Secret 값 없음.
+  active는 큐·복제 도구·ALB만 활성화하며 봇0/Job suspended 유지 확인.
+- 앱 제어 어댑터 단위 테스트9 PASS: pause/drain/epoch/target 멱등성, backlog가 있어도 in-flight0이면
+  drain 완료, 상태 이상/미등록 대상/동시 제어/HTTPS 미준수/health 실패 거절.
+- `python3 tests/control_smoke.py` PASS: 배포할 sample-app 이미지 + 실제 Redis + TLS 시험 앱2개 +
+  실제 tools 이미지에서 API/control 무인증 거절, AWS 초기 target, paused 중 접수 유지,
+  backlog를 남긴 drain, GCP target 변경 후 queued 요청 전달 및 GET 확인.
+  시험 앱은 메모리 저장 fixture로 PostgreSQL CDC/실클라우드 전환 시험이 아니다. 테스트 컨테이너 정리 완료.
+- 실제 AWS metadata: ACM wildcard 인증서 ISSUED, NAT Gateway 사용 가능,
+  EKS 노드3개 모두 NAT 연결 private subnet/public IP없음 확인. NAT가 실제 앱 요청에 보이는지는 미검증.
+- 실제 GCP API: ghost-project-513812 oneaction-dev RUNNING, sample-app active Service의 NEG 활성화,
+  앱 REQUEST_API_AUTH/TOKEN 환경변수명 및 Cloud SQL proxy sidecar 존재 확인(Secret 값 조회 안 함).
+  sample-app HTTPS Ingress는 아직 없으며 기존 platform Ingress만 존재. 다른 프로젝트 tokyo-gke 등록과 구분.
+- oneaction-infra cloud-migration-edge: terraform init(-backend=false)/validate/fmt PASS.
+  Cloud SQL 공개주소 opt-in: google7.29 mock-provider plan tests2 PASS, 기본 비공개 및
+  opt-in 시 authorized_networks0/TLS 유지 확인. 실제 Terraform plan/apply는 미실행.
+
+준비만 완료: DNS/IP 생성·GKE 정확한 Argo 등록·Secret 공급·새 DB/역할·writer 인계·GitOps 실제 배포·E2E 남음.
