@@ -6,7 +6,7 @@
 루트 Application (팀원이 손으로 한 번 등록)
   project hackathon · source argocd/onprem · destination argocd
   ├─ sample-app.yaml         sample-app-onprem   → apps/sample-app/overlays/onprem + analysis/onprem
-  ├─ migration-db-init.yaml  migration-db-init   → apps/migration-db-init   (Sync 훅 Job)
+  ├─ migration-db-init.yaml  migration-db-init   → apps/migration-db-init   (ConfigMap 만. init Job 은 수동, 2026-11-08)
   ├─ migration-cdc.yaml      migration-cdc       → apps/migration-cdc       (Kafka Connect)
   ├─ migration-policy.yaml   migration-policy    → apps/migration-policy    (OPA 정책 판정)
   └─ db-insert-worker.yaml   db-insert-worker    → apps/db-insert-worker    (INSERT 워커)
