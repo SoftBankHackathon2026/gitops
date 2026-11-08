@@ -1,8 +1,17 @@
 # 귀환 대상 빈 DB(migration_demo_return)와 테이블·권한을 만든다. seed 는 넣지 않는다.
 #
-# Argo CD Sync 훅이다. sync 마다 이전 Job 을 지우고 새로 만든다(BeforeHookCreation).
-# Application 이 수동 sync 라 `argocd app sync migration-return` 을 실행할 때만 돈다.
-# 도구(migration.init_db)는 멱등이다. 역할은 정방향과 같은 인스턴스를 쓰므로 같은 Secret 값으로 맞춘다.
+# 🔴 수동 Job 이다. kustomization 에 넣지 않아 `kubectl apply -k apps/migration-return` 이나
+#    `argocd app sync migration-return` 으로는 만들어지지 않는다. 귀환(AWS→온프렘) 시험 직전에만 직접 만든다:
+#      kubectl -n hackathon delete job migration-return-init-target --ignore-not-found
+#      kubectl -n hackathon create -f apps/migration-return/job-init-target.manual.yaml
+#
+# 🔴 이 Job 은 귀환 설정(job.source=aws, target=onprem_return)으로 init_db 를 돌린다. init_db 는 대상 DB 의
+#    앱 INSERT 를 닫는다(전환 때 cutover 가 GRANT). 2026-11-06 귀환 뒤로는 migration_demo_return 이 온프렘의
+#    "현재 원본"이라, 귀환 시험이 아닐 때 돌리면 원본 쓰기가 닫힌다(2026-11-08 09:45 실제 발생 → 09:51
+#    onprem_to_aws_005 가 "원본 앱 계정에 INSERT 권한이 없다"로 실패). 돌리기 전에 지금 원본이 어디인지 확인한다:
+#      kubectl -n hackathon exec deploy/durable-ingress -- sh -c \
+#        'wget -qO- --header "Authorization: Bearer $INGRESS_CONTROL_TOKEN" http://127.0.0.1:9092/status'
+#    target 이 onprem 이면(온프렘 앱 → migration_demo_return 이 원본) 이 Job 을 돌리지 않는다.
 #
 # 🔴 AWS 에는 init_db 를 돌리지 않는다. RDS 가 job.source 이면 init_db 가 ALTER ROLE ... REPLICATION 을
 #    실행해 거부된다. AWS 복제 권한은 Hackathon/migration/sql/return/aws_source_replication.sql 로 대신 준다.
@@ -11,15 +20,15 @@
 #   review-db-credentials    온프렘 슈퍼유저 (DB 생성 권한)
 #   migration-db-credentials 네 역할의 비밀번호
 #
-# sync-wave 1: ConfigMap(wave 0)이 먼저 적용된 뒤 Job 이 그것을 마운트한다.
+# ConfigMap migration-return-config 는 kustomization 이 만든다(Argo sync 또는 kubectl apply -k).
+# 이미지 태그는 kustomization 의 images 가 적용되지 않으므로 여기서 직접 고정한다.
 apiVersion: batch/v1
 kind: Job
 metadata:
   name: migration-return-init-target
-  annotations:
-    argocd.argoproj.io/hook: Sync
-    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
-    argocd.argoproj.io/sync-wave: "1"
+  namespace: hackathon
+  labels:
+    app.kubernetes.io/part-of: migration
 spec:
   backoffLimit: 2
   activeDeadlineSeconds: 600
