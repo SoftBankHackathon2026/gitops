@@ -62,3 +62,11 @@ python3 tests/cutover-bot-wiring.test.py
 이미지·설정 문제의 복구는 봇을 정지한 상태로 GitOps 커밋을 수정한다.
 새 봇 원장의 영속 제어 메타데이터를 이해하지 못하는 구버전 봇으로 롤백하면
 생성이 다시 시작될 수 있으므로 구버전 이미지 롤백은 자동 복구 절차가 아니다.
+
+## 앱·접수서비스까지 AWS로 이전
+
+기존 `config.yaml`은 DB-only 흐름을 유지한다. 전체 서비스 이전은
+[`../service-migration-aws/README.md`](../service-migration-aws/README.md)의
+AWS receipt/Redis·source forwarding·full runner overlay 준비/승격 순서를 따른다.
+`apps/live-db-cutover-full-aws`는 EKS 앱을 확인하고 접수 원장 인계 및 AWS 목적지 직접 검증을
+사용한다. 공개 DNS 전환은 다음 단계다. 기존 job을 그대로 재개하거나 이미지 교체 없이 full 설정만 적용하지 않는다.

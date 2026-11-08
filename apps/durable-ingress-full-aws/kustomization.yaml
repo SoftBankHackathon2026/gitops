@@ -1,0 +1,11 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: hackathon
+resources:
+  - ../durable-ingress
+patches:
+  - path: ingress.yaml
+images:
+  - name: docker.io/kty1021/sample-app
+    # Same published artifact as the destination receipt and EKS application.
+    newTag: 8313bcf696306994d0daeb64ac8a7b0f2ca29489

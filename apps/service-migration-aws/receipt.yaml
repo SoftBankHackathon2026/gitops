@@ -1,0 +1,68 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: service-receipt
+spec:
+  selector: {app: service-receipt}
+  ports: [{name: http, port: 80, targetPort: 8080}]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: service-receipt
+spec:
+  replicas: 0
+  strategy: {type: Recreate}
+  selector:
+    matchLabels: {app: service-receipt}
+  template:
+    metadata:
+      labels: {app: service-receipt}
+    spec:
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 30
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: receipt
+          image: docker.io/kty1021/sample-app
+          command: [node, -e]
+          args:
+            - >-
+              if (require('./src/durable-ingress/service').HANDOFF_PROTOCOL_VERSION !== 1)
+              throw new Error('HANDOFF_IMAGE_REQUIRED');
+              require('./src/durable-ingress/server');
+          env:
+            - {name: REDIS_URL, value: 'redis://service-redis:6379'}
+            - {name: INGRESS_STANDBY, value: 'true'}
+            - {name: INGRESS_INITIAL_TARGET, value: aws_eks}
+            # Public TLS is terminated by the ALB. Every /control route requires
+            # its own control token; the public API token cannot control a handoff.
+            - {name: INGRESS_EXPOSE_CONTROL, value: 'true'}
+            - name: INGRESS_TARGETS
+              value: '{"aws_eks":{"url":"https://sample-app.hackerthon.yubin.dev","token_env":"EKS_REQUEST_API_TOKEN"}}'
+            - name: EKS_REQUEST_API_TOKEN
+              valueFrom:
+                secretKeyRef: {name: service-migration-auth, key: app-token}
+            - name: INGRESS_API_TOKEN
+              valueFrom:
+                secretKeyRef: {name: service-migration-auth, key: api-token}
+            - name: INGRESS_CONTROL_TOKEN
+              valueFrom:
+                secretKeyRef: {name: service-migration-auth, key: control-token}
+          ports: [{name: http, containerPort: 8080}]
+          readinessProbe:
+            httpGet: {path: /readyz, port: http}
+            timeoutSeconds: 3
+          livenessProbe:
+            httpGet: {path: /healthz, port: http}
+          resources:
+            requests: {cpu: 100m, memory: 128Mi}
+            limits: {cpu: 500m, memory: 512Mi}
+          securityContext:
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            capabilities: {drop: [ALL]}

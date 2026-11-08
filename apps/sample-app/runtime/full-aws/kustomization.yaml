@@ -1,0 +1,29 @@
+# Explicit full migration preparation: deploy the same application artifact as
+# the receipt handoff image while retaining AWS Secret, RDS CA, and TLS wiring.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../aws
+images:
+  - name: 974402993422.dkr.ecr.ap-northeast-2.amazonaws.com/ghost/sample-app
+    newName: docker.io/kty1021/sample-app
+    # Pin with the published handoff commit and config.destination_app_version.
+    newTag: 8313bcf696306994d0daeb64ac8a7b0f2ca29489
+patches:
+  # The existing canary rollout may keep old replicas temporarily. Select only
+  # the requested artifact for this migration's AWS service so a single version
+  # probe cannot randomly hit a new pod while old pods still serve requests.
+  - target:
+      kind: Rollout
+      name: sample-app
+    patch: |-
+      - op: add
+        path: /spec/template/metadata/labels/ghost.dev~1migration-version
+        value: 8313bcf696306994d0daeb64ac8a7b0f2ca29489
+  - target:
+      kind: Service
+      name: sample-app
+    patch: |-
+      - op: add
+        path: /spec/selector/ghost.dev~1migration-version
+        value: 8313bcf696306994d0daeb64ac8a7b0f2ca29489

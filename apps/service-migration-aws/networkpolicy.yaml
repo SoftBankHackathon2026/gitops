@@ -1,0 +1,46 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: service-migration-isolation
+spec:
+  podSelector: {}
+  policyTypes: [Ingress, Egress]
+  ingress: []
+  egress: []
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: service-receipt
+spec:
+  podSelector:
+    matchLabels: {app: service-receipt}
+  policyTypes: [Ingress, Egress]
+  ingress:
+    # ALB IP targets terminate TLS and forward HTTP. Application-level bearer
+    # authentication protects /api and /control with separate credentials.
+    - ports: [{protocol: TCP, port: 8080}]
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels: {kubernetes.io/metadata.name: kube-system}
+      ports: [{protocol: UDP, port: 53}, {protocol: TCP, port: 53}]
+    - to:
+        - podSelector:
+            matchLabels: {app: service-redis}
+      ports: [{protocol: TCP, port: 6379}]
+    - ports: [{protocol: TCP, port: 443}]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: service-redis
+spec:
+  podSelector:
+    matchLabels: {app: service-redis}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels: {app: service-receipt}
+      ports: [{protocol: TCP, port: 6379}]

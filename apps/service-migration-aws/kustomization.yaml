@@ -1,0 +1,11 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: service-migration
+resources:
+  - receipt.yaml
+  - redis.yaml
+  - networkpolicy.yaml
+images:
+  - name: docker.io/kty1021/sample-app
+    # Published main artifact shared with the source receipt and EKS application.
+    newTag: 8313bcf696306994d0daeb64ac8a7b0f2ca29489
