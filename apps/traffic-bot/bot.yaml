@@ -52,6 +52,15 @@ spec:
             # 팀 INSERT 워커의 forward_NNN·return_NNN 과 겹치지 않게 한다. ledger 를 잃었으면 새 run_id 로 시작한다.
             - name: BOT_RUN_ID
               value: ghost_bot_sqlite_20261107
+            # 새 원장은 자동 생성하지 않는다. 러너가 예산을 정해 시작하고 완료 후 정지한다.
+            # 기존 원장의 영속 생성 상태는 새 이미지가 복구한다.
+            - name: BOT_GENERATION
+              value: stopped
+            - name: BOT_CONTROL_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: demo-traffic-agent
+                  key: bot_control_token
             - name: BOT_PHASE
               value: onprem_return_live
             - name: BOT_MAX_RECORDS

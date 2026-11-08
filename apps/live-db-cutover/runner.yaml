@@ -1,4 +1,4 @@
-# Dedicated process: heavy cutover/verification must not block worker probes.
+# Dedicated cutover process: controls the HTTP bot and ingress; no DB insert worker API.
 # 러너 프로세스는 플랫폼 보고기다. --all-jobs 로 플랫폼에 등록된 모든 작업의 전환 명령을 오래된 순서로 하나씩
 # 받아, config.yaml 의 targets 는 그대로 두고 job 절만 그 작업으로 바꾼 설정(/var/lib/worker/jobs/<job>.yaml)으로
 # migration.cutover 를 실행한다. 상태 파일에 기록이 있는 작업은 5초마다 모두 보고한다.
@@ -53,10 +53,14 @@ spec:
             - name: MIGRATION_VERIFY_PASSWORD
               valueFrom:
                 secretKeyRef: {name: migration-db-credentials, key: verify_password}
-            # 접수 서비스 제어 API 토큰 (apps/durable-ingress 와 같은 Secret). 없으면 NetworkPolicy 만으로 보호.
+            # 봇과 같은 제어 토큰. 키가 없으면 실행하지 않아 완료 후 정지 실패를 막는다.
+            - name: BOT_CONTROL_TOKEN
+              valueFrom:
+                secretKeyRef: {name: demo-traffic-agent, key: bot_control_token}
+            # 접수 서비스 제어 API 토큰 (apps/durable-ingress 와 같은 Secret).
             - name: INGRESS_CONTROL_TOKEN
               valueFrom:
-                secretKeyRef: {name: durable-ingress-control, key: token, optional: true}
+                secretKeyRef: {name: durable-ingress-control, key: token}
             # 실행 정책 게이트(Hackathon migration/CUTOVER_POLICY.md). 이미지 1d80b61 은 COPYING·FENCING·SWITCHING
             # 경계마다 OPA 판정을 받는다. 증거 경로는 보고기가 작업마다 state/policy/<job>.json 으로 정하고,
             # 대상이 CUTOVER_POLICY_COLLECTORS 에 있으면 cutover 가 경계마다 증거를 직접 새로 만든다.

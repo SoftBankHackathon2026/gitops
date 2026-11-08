@@ -1,6 +1,7 @@
 # 데모 트래픽 제어 에이전트(apps/demo-traffic-agent)가 봇의 생성 스위치(GET /control,
 # POST /control/generation)에 닿는 클러스터 내부 주소. metrics 포트를 그대로 쓴다.
-# 스위치는 BOT_CONTROL_TOKEN 이 있는 봇 이미지(sample-app PR #12)부터 동작한다. 그 전에는 /control 이 404 다.
+# 러너는 영속 생성 상태·한도·원장 식별자를 지원하는 봇 이미지가 필요하다.
+# apps/live-db-cutover/README.md의 이미지 교체 순서를 따른다.
 apiVersion: v1
 kind: Service
 metadata:
