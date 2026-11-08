@@ -1,4 +1,4 @@
-# AWS → 온프렘 귀환 설정과 귀환 대상 초기화 (온프렘 k3s, hackathon 네임스페이스).
+# AWS → 온프렘 귀환 설정 (온프렘 k3s, hackathon 네임스페이스). 귀환 대상 초기화 Job 은 수동(job-init-target.manual.yaml).
 # Argo CD Application: argocd/onprem/migration-return.yaml (수동 sync)
 #
 # Kafka Connect 는 따로 띄우지 않고 apps/migration-cdc 를 재사용한다.
@@ -10,7 +10,9 @@ commonLabels:
   app.kubernetes.io/part-of: migration
 resources:
   - configmap.yaml
-  - job-init-target.yaml
+  # job-init-target.manual.yaml 도 일부러 넣지 않는다(2026-11-08). 귀환 설정으로 init_db 를 돌려 대상인
+  # migration_demo_return 의 앱 INSERT 를 닫는데, 지금은 그 DB 가 온프렘 원본이라 귀환 시험 밖에서 돌면
+  # 원본 쓰기가 닫힌다. 귀환 시험 직전에만 파일 머리말 순서대로 kubectl create -f 로 만든다.
   # job-precheck.manual.yaml 은 일부러 넣지 않는다. 점검은 sync 와 무관하게 필요할 때 kubectl create -f 로
   # 돌리는 일이고, 손으로 만드는 Secret migration-aws-admin 이 없으면 sync 까지 실패하기 때문이다.
 images:

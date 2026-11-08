@@ -1,8 +1,8 @@
-# Argo CD Application: AWS → 온프렘 귀환 설정과 귀환 대상 초기화 Job.
+# Argo CD Application: AWS → 온프렘 귀환 설정(ConfigMap migration-return-config).
 #
 # 🔴 syncPolicy.automated 를 일부러 넣지 않았다 (수동 sync). 정방향 중에 귀환이 저절로 돌지 않게 한다.
-#    루트 앱이 이 Application 을 등록해도 아무것도 실행되지 않고, 아래 명령을 내려야 Job 이 돈다.
-#      argocd app sync migration-return
+#    sync 해도 ConfigMap 만 적용된다. 귀환 대상 초기화 Job 은 2026-11-08 부터 sync 와 분리했다 —
+#    apps/migration-return/job-init-target.manual.yaml 머리말 순서대로 귀환 시험 직전에만 만든다.
 #
 # 선행 조건: Secret migration-db-credentials, review-db-credentials 가 hackathon 네임스페이스에 있어야 한다.
 apiVersion: argoproj.io/v1alpha1
