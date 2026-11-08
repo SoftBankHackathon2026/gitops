@@ -1,10 +1,14 @@
 # migration-db-init
 
+> 2026-11-08: 쓰지 않는 온프렘 `migration_demo` 를 삭제했다(스키마만 운영자 로컬에 보관). `job.yaml` 은
+> `job.manual.yaml` 로 바꿔 kustomization 에서 뺐다. Argo sync 로는 ConfigMap 만 적용되고 DB 는 다시 생기지 않는다.
+> 온프렘 현재 원본은 `migration_demo_return`, AWS 원본은 RDS `migration_demo` 다(이름이 같지만 다른 DB).
+
 `migration_demo` 데이터베이스·테이블·네 역할(`migration_app`, `migration_cdc`, `migration_sink`, `migration_verify`)을 만드는 일회성 Job. 온프렘 k3s `hackathon` 네임스페이스 전용이며 Argo CD Application 은 [argocd/onprem/migration-db-init.yaml](../../argocd/onprem/migration-db-init.yaml).
 
 ```
 configmap.yaml        비밀 아닌 설정 (DB·역할·작업 이름, config.yaml). 이게 바뀌면 Job 이 다시 돈다
-job.yaml              Argo CD Sync 훅 Job. migration.init_db --target onprem
+job.manual.yaml       수동 Job(복구용). migration.init_db --target onprem — 실행하면 migration_demo 를 다시 만든다
 secret.example.yaml   Secret 키 목록. 값은 넣지 않는다
 job-aws.manual.yaml   수동 Job. migration.init_db --target aws (RDS 생긴 뒤 사람이 apply, Argo 는 안 읽음)
 ```
