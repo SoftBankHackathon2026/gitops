@@ -26,7 +26,7 @@ spec:
       # local-path PVC의 PV nodeAffinity가 배치 노드를 결정한다.
       containers:
         - name: runner
-          image: ghcr.io/softbankhackathon2026/migration-tools:13fd53c4462684f6f33d602b407dce533e9f8a9d
+          image: ghcr.io/softbankhackathon2026/migration-tools:8ab45a3c824252e2dab5469b0165f9c931244878
           command: [python, /opt/reporter/fleet_reporter.py]
           args: [--all-jobs, --state-dir, /var/lib/worker, --interval, "5", --execute-commands]
           env:

@@ -16,4 +16,4 @@ resources:
 images:
   - name: ghcr.io/softbankhackathon2026/migration-tools
     # main 의 다른 마이그레이션 앱과 같은 커밋으로 고정 (return_precheck 포함)
-    newTag: 13fd53c4462684f6f33d602b407dce533e9f8a9d
+    newTag: 8ab45a3c824252e2dab5469b0165f9c931244878
