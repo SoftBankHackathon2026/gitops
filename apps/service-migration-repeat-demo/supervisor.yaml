@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: service-receipt
+spec:
+  template:
+    spec:
+      containers:
+        - name: receipt
+          command: [node, packages/demo-supervisor.js, serve]
+          args: []
+          env:
+            - {name: DEMO_RESET_ENABLED, value: 'true'}
+            - {name: DEMO_ROLE, value: destination}
+          # Intentional child stop during reset must not restart the Pod.
+          # Readiness remains the child's HTTP readiness from the base.
+          livenessProbe:
+            $patch: replace
+            exec:
+              command: [node, packages/demo-supervisor.js, status]
+            timeoutSeconds: 5
+            periodSeconds: 10
+            failureThreshold: 6

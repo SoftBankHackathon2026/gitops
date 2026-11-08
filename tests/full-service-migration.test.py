@@ -75,7 +75,7 @@ class FullServiceMigrationTest(unittest.TestCase):
         reporter = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(reporter)
         self.assertEqual(self.cfg['platform_data_targets'], {'onprem': 'onprem_return', 'aws': 'aws'})
-        self.assertEqual(self.cfg['platform_apps'], ['sample-app', 'hackathon/Deployment/sample-app', 'hackathon/Rollout/sample-app'])
+        self.assertEqual(self.cfg['platform_apps'], ['sample-app-onprem', 'sample-app', 'hackathon/Deployment/sample-app', 'hackathon/Rollout/sample-app'])
         with tempfile.TemporaryDirectory() as directory:
             directory = Path(directory)
             base = directory / 'base.yaml'
@@ -88,7 +88,7 @@ class FullServiceMigrationTest(unittest.TestCase):
                     created = yaml.safe_load(reporter.job_config(str(base), selected, directory / 'jobs').read_text())
                     self.assertEqual((created['job']['source'], created['job']['target']), ('onprem_return', 'aws'))
                     self.assertEqual(created['full_migration'], self.cfg['full_migration'])
-            for invalid in [dict(claimed, apps=[]), dict(claimed, apps=['sample-app', 'ai-agent']),
+            for invalid in [dict(claimed, apps=[]), dict(claimed, apps=['sample-app-onprem', 'ai-agent']),
                             dict(claimed, apps=['other/Deployment/sample-app']),
                             dict(claimed, source_env='aws', target_env='onprem', data_source='aws', data_target='onprem')]:
                 with self.subTest(invalid=invalid):

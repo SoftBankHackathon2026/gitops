@@ -1,0 +1,27 @@
+# Opt-in only. Do not select before images, Secret delivery and TLS are ready.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../argocd/onprem
+patches:
+  - target:
+      kind: Application
+      name: live-db-cutover
+    patch: |-
+      - op: replace
+        path: /spec/source/path
+        value: apps/live-db-cutover-repeat-demo
+  - target:
+      kind: Application
+      name: durable-ingress
+    patch: |-
+      - op: replace
+        path: /spec/source/path
+        value: apps/durable-ingress-repeat-demo
+  - target:
+      kind: Application
+      name: traffic-bot
+    patch: |-
+      - op: replace
+        path: /spec/source/path
+        value: apps/traffic-bot-repeat-demo

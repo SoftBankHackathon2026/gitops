@@ -1,0 +1,11 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: hackathon
+resources:
+  - ../traffic-bot
+patches:
+  - path: supervisor.yaml
+images:
+  - name: docker.io/kty1021/sample-app
+    # Published main image; amd64 and arm64 manifests verified.
+    newTag: 7137166ec0f21e60190bcefc136340975057decc
