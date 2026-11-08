@@ -7,3 +7,24 @@ resources:
   - aws-migration/external-secrets-service-migration.yaml
   - aws-migration/cloud-migration.yaml
   - aws-migration/service-migration.yaml
+# 2026-11-08 전체 이전 반복 시연 활성화: argocd-full-service + argocd-repeat-demo-aws 의 패치를 기본 그래프에 적용한다.
+# Secret(service-migration-auth, ESO)·이미지 7137166 준비 뒤 선택했다. 되돌리려면 이 patches 블록을 지운다.
+patches:
+  - target:
+      group: argoproj.io
+      version: v1alpha1
+      kind: Application
+      name: sample-app-aws
+    patch: |-
+      - op: replace
+        path: /spec/sources/0/path
+        value: apps/sample-app/runtime/full-aws
+  - target:
+      group: argoproj.io
+      version: v1alpha1
+      kind: Application
+      name: service-migration-aws
+    patch: |-
+      - op: replace
+        path: /spec/source/path
+        value: apps/service-migration-repeat-demo
