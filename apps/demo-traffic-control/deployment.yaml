@@ -1,6 +1,6 @@
 # 화면 서버 + 에이전트를 한 파드에 둔다. 에이전트는 같은 파드의 127.0.0.1:8080 으로 보고하고 명령을 가져가
 # traffic-bot 의 생성 스위치를 부른다. 사람이 누른 명령만 실행하고, 전환이 진행 중이면 거절한다.
-# INSERT 워커는 2026-11-08 퇴역했다(#75). 워커 칸은 상태 프록시의 410 을 받아 "연결 안 됨"으로 보인다.
+# INSERT 워커는 2026-11-08 퇴역했다(#75). 화면·에이전트에서 워커를 뺐다.
 #
 # Secret demo-traffic-control 은 운영자가 만든다(값은 GitOps 에 넣지 않는다, 각 32자 이상):
 #   operator_key       화면에서 버튼을 누를 때 넣는 키
@@ -73,7 +73,10 @@ spec:
             - name: BOT_CONTROL_TOKEN
               valueFrom:
                 secretKeyRef: {name: demo-traffic-control, key: bot_control_token, optional: true}
-            - {name: WORKER_URL, value: "http://platform-status-proxy:8080/worker"}
+            # 접수 큐가 지금 요청을 넘기는 대상을 화면에 보여 주려고 /status 를 읽기만 한다(apps/durable-ingress 와 같은 Secret).
+            - name: INGRESS_CONTROL_TOKEN
+              valueFrom:
+                secretKeyRef: {name: durable-ingress-control, key: token, optional: true}
             - {name: BOT_CONTROL_URL, value: "http://traffic-bot-control:9091"}
             - {name: CONNECT_URL, value: "http://migration-connect:8083"}
             - {name: CUTOVER_DB, value: /var/lib/worker/cutover.sqlite3}
