@@ -4,6 +4,7 @@ namespace: service-migration
 resources:
   - ../service-migration-aws
   - public-ingress.yaml
+  - redis-pvc.yaml
 replicas:
   - name: service-redis
     count: 1

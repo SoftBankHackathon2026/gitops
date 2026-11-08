@@ -37,12 +37,12 @@ class FullServiceMigrationTest(unittest.TestCase):
         cls.runner = render('apps/live-db-cutover-full-aws')
         cls.cfg = yaml.safe_load(cls.runner[('ConfigMap', 'live-db-cutover-config')]['data']['config.full-aws.yaml'])
 
-    def test_staged_defaults_do_not_start_services_or_change_current_jobs(self):
+    def test_aws_graph_activates_repeat_demo_while_base_and_db_only_config_stay_staged(self):
         self.assertEqual(self.base[('Deployment', 'service-receipt')]['spec']['replicas'], 0)
         self.assertEqual(self.base[('StatefulSet', 'service-redis')]['spec']['replicas'], 0)
         self.assertFalse(any(kind == 'Ingress' for kind, _ in self.base))
         apps = render('argocd')
-        self.assertEqual(apps[('Application', 'service-migration-aws')]['spec']['source']['path'], 'apps/service-migration-aws')
+        self.assertEqual(apps[('Application', 'service-migration-aws')]['spec']['source']['path'], 'apps/service-migration-repeat-demo')
         old = render('apps/live-db-cutover')
         self.assertEqual(env(old[('Deployment', 'live-db-cutover')])['MIGRATION_CONFIG']['value'], '/etc/live-cutover/config.yaml')
         self.assertNotIn('full_migration', yaml.safe_load(old[('ConfigMap', 'live-db-cutover-config')]['data']['config.yaml']))

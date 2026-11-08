@@ -65,6 +65,26 @@ source/destination 접수의 시작 명령은 `HANDOFF_PROTOCOL_VERSION=1`을 �
 앱 설정에서 기존 RDS 쓰기를 열거나 데이터를 지우지 않는다. PRECHECK는 대상 앱 계정의
 INSERT가 닫혔는지 확인하므로, 이미 대상이 라이브 writer이면 운영 인계부터 필요하다.
 
+## AWS Redis 디스크
+
+활성화 overlay `service-migration-aws-active`는 Redis 1개가 사용하는
+`data-service-redis-0` PVC를 명시적으로 관리한다. 기존 EKS StorageClass
+`oneaction-monitoring-gp3`(암호화 gp3, Retain, WaitForFirstConsumer)를 사용한다.
+기존 Pending PVC의 비어 있는 `storageClassName`만 채우므로 PVC 삭제나
+StatefulSet의 변경 불가능한 `volumeClaimTemplates` 수정이 필요 없다.
+이 변경은 Kubernetes 1.28 이상에서 지원한다.
+근거: [Kubernetes의 PVC StorageClass 변경 지원](https://kubernetes.io/blog/2023/08/18/retroactive-default-storage-class-ga/).
+
+PVC와 StatefulSet은 같은 Argo sync wave에 둔다. PVC를 앞선 wave에 두면
+새 환경에서 소비자인 Redis Pod가 만들어지기 전에 디스크 연결을 기다리게 된다.
+기본 비활성 overlay는 이 PVC를 생성하지 않는다. Redis는 1개로 유지하며,
+복제본을 늘릴 때에는 추가 ordinal의 PVC도 명시적으로 준비해야 한다.
+
+적용 후 `data-service-redis-0`이 `Bound`, `service-redis-0`과
+`service-receipt`가 Ready인지 확인한다. PVC는 `Prune=false,Delete=false`로
+보호하므로 overlay를 되돌리거나 Argo 앱을 삭제해도 원장을 자동 삭제하지 않는다.
+이미 할당된 StorageClass를 되돌리거나 PVC를 지우는 작업은 롤백에 포함하지 않는다.
+
 ## Secret 계약
 
 값을 Git·명령 인수·문서에 기록하지 않는다. 기존 승인된 Secret 관리 경로로 공급한다.
