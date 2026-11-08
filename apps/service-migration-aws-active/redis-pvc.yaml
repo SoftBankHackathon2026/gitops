@@ -1,0 +1,17 @@
+# Adopt the unbound ordinal-0 claim without replacing the StatefulSet/PVC.
+# Keep this in the SAME sync wave as the Redis pod: the StorageClass uses
+# WaitForFirstConsumer, so an earlier PVC wave would deadlock fresh installs.
+# The service is deliberately single-replica; additional ordinals need claims.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: data-service-redis-0
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: oneaction-monitoring-gp3
+  resources:
+    requests:
+      storage: 2Gi
