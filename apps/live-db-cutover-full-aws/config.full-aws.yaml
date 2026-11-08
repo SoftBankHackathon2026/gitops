@@ -147,6 +147,7 @@ platform_data_targets:
   onprem: onprem_return
   aws: aws
 platform_apps:
+- sample-app-onprem
 - sample-app
 - hackathon/Deployment/sample-app
 - hackathon/Rollout/sample-app

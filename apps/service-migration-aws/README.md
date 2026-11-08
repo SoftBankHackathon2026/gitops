@@ -51,10 +51,10 @@ DB-only 경로 `aws_db`(온프렘 앱→RDS)가 아니라 `aws_eks`를 선택한
 | 사용처 | 게시된 이미지 태그 | 확인한 manifest digest |
 |---|---|---|
 | 원본/대상 접수서비스·EKS 앱 | `docker.io/kty1021/sample-app:8313bcf696306994d0daeb64ac8a7b0f2ca29489` | `sha256:8872fd812e4eb11294d8fb06d9776967e2ab7096a19e515754a408f337d1a76a` |
-| full 러너 | `ghcr.io/softbankhackathon2026/migration-tools:f67bc776a37a9e10da097e53f45a555b3dcbf8de` | `sha256:b55a404c3a806961e01d7b4c18a673201002415ec070330c89eb8d0e9b304b13` |
+| full 러너 | `ghcr.io/softbankhackathon2026/migration-tools:a544b23a24d41180df3f5d3830190fd42768b1c1` | `sha256:bdb6ce07a303f24ad136498ea7ca8a6707b865dd70f291582a64cf2135e3c9d6` |
 
 빌드 근거: [sample-app main CI](https://github.com/SoftBankHackathon2026/sample-app/actions/runs/42434508786),
-[runner main CI](https://github.com/SoftBankHackathon2026/Hackathon/actions/runs/42434857960).
+[runner main CI](https://github.com/SoftBankHackathon2026/Hackathon/actions/runs/42439933586).
 접수서비스 2개와 EKS 앱 이미지·버전 selector·`destination_app_version`은 같은 sample-app SHA다.
 게시 확인은 Secret·TLS·실제 통합 시험 완료를 의미하지 않는다.
 canonical `fleet_reporter.py` 동기화는 기본 러너 ConfigMap 해시도 바꾸므로 GitOps 머지/
@@ -111,7 +111,7 @@ NetworkPolicy는 EKS CNI의 실제 enforcement 여부도 배포 때 확인해야
    `/etc/live-cutover/config.full-aws.yaml`이다. 이 설정은 온프렘→AWS 전용이므로
    귀환/리허설 작업에 재사용하지 않는다. 출발 DB `migration_demo_return`→AWS `migration_demo`.
    플랫폼 환경 `onprem`은 `platform_data_targets`에서 실제 DB target `onprem_return`로
-   명시적으로 매핑한다. `platform_apps`는 `sample-app`,
+   명시적으로 매핑한다. `platform_apps`는 실제 Argo 앱 선택값 `sample-app-onprem`, `sample-app`,
    `hackathon/Deployment/sample-app`, `hackathon/Rollout/sample-app`만 허용하는 명시적
    별칭 목록이다. 이 중 정확히 1개를 선택하고 방향이 일치하는 작업만 실행한다.
    다른 namespace의 동명 앱이나 여러 앱을 이 데모 preset으로 이전했다고 표시하지 않는다.
@@ -153,3 +153,25 @@ python3 tests/cutover-bot-wiring.test.py
 
 Python 테스트는 PyYAML과 kubectl을 사용한다. 서버·Secret·DB에 접근하지 않는
 렌더/계약 검증이며 실제 DNS/TLS/Argo 동기화/마이그레이션 실행을 대신하지 않는다.
+
+## 2026-11-08 활성화 전 실제 점검
+
+아직 full overlay를 활성화하지 않았다. 로컬 계약 검증 12건 통과와 실제 이전 완료는 구분한다.
+
+- 현재 온프렘 접수의 writer는 `aws_db`이며, 실제 SELECT 결과 온프렘
+  `migration_demo_return` 100건/앱 INSERT 금지, AWS `migration_demo` 1,083건/INSERT 허용이었다.
+  `onprem_to_aws_004`도 COMPLETED다. 이 상태에서 신규 온프렘→AWS DB 복제를 시작하거나
+  DB를 비워서는 안 된다. 기존 AWS 데이터를 보존한 앱·접수 인계와 새 DB 데모 중 범위 확정이 먼저다.
+- AWS `service-receipt`와 `service-redis`는 replicas=0이다. AWS 앱은 기존 버전이며
+  root는 아직 `argocd`, 앱 source는 `runtime/aws`를 사용한다.
+- 온프렘 `service-migration-auth`는 없다. AWS 새 namespace의 Secret 조회 권한도 없어
+  공급 여부를 확인하지 못했다. Secrets Manager에는 전용 `oneaction/service-migration`
+  Secret이 없으며, 기존 ESO는 `sample-app`만 감시한다. 토큰은 별도의 승인된 공급 경로가 필요하다.
+- 선언된 ACM 인증서는 ISSUED이고 `*.hackerthon.yubin.dev`를 포함한다.
+  신규 접수 hostname은 아직 DNS 조회가 안 된다. 활성 receipt ALB를 준비한 뒤
+  `oneaction-infra/infra/service-migration-edge`로 DNS를 연결해야 한다.
+- `sample-app-onprem`을 선택해도 full runner의 단일 앱 검증을 통과하도록 별칭을 추가했다.
+  full 러너는 게시·manifest를 확인한 main `a544b23`으로 갱신했다.
+- 원본 접수서비스를 재시작하거나 러너 실행 모드를 바꾸지 않았다. DB/Redis 초기화,
+  원본 쓰기 재개, 마이그레이션 재실행도 하지 않았다. 상태 파일에는 과거 CATCHING_UP/
+  NEEDS_RECOVERY 작업이 남아 있어 실제 실행 중인지와 복구 소유권도 구분해야 한다.
