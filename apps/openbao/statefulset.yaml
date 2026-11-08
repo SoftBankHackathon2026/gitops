@@ -70,10 +70,21 @@ spec:
               readOnly: true
             - name: data
               mountPath: /openbao/data
+            - name: seal
+              mountPath: /openbao/seal
+              readOnly: true
       volumes:
         - name: config
           configMap:
             name: openbao-config
+        # static seal 키(32바이트). Git 에 두지 않고 README 절차로 만든 Secret 을 쓴다. fsGroup 1000 이 읽도록 0440.
+        - name: seal
+          secret:
+            secretName: openbao-static-seal
+            defaultMode: 0440
+            items:
+              - key: static.key
+                path: static.key
   volumeClaimTemplates:
     - metadata:
         name: data

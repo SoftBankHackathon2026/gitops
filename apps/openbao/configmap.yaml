@@ -22,3 +22,10 @@ data:
       path    = "/openbao/data"
       node_id = "openbao-0"
     }
+
+    # 자동 unseal: 파드가 다시 떠도 사람이 unseal 하지 않는다. 32바이트 키는 Secret openbao-static-seal 에만 있다.
+    # Shamir 에서 처음 옮길 때 한 번만 `bao operator unseal -migrate` 가 필요하다(README).
+    seal "static" {
+      current_key_id = "onprem-static-1"
+      current_key    = "file:///openbao/seal/static.key"
+    }
