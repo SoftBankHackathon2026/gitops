@@ -3,7 +3,7 @@ kind: Job
 metadata:
   name: cloud-migration-copy-002
 spec:
-  suspend: true
+  suspend: false
   backoffLimit: 0
   template:
     metadata:
