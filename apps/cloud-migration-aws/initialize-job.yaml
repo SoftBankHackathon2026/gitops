@@ -1,9 +1,9 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: cloud-ingress-initialize-002
+  name: cloud-ingress-initialize-001
 spec:
-  suspend: false
+  suspend: true
   backoffLimit: 0
   template:
     metadata:

@@ -13,5 +13,3 @@ replicas:
   count: 1
 - name: cloud-ingress
   count: 1
-- name: cloud-traffic-bot
-  count: 1
