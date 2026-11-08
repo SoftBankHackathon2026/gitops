@@ -8,7 +8,7 @@ spec:
   source:
     repoURL: https://github.com/SoftBankHackathon2026/gitops.git
     targetRevision: main
-    path: apps/cloud-migration-aws-active
+    path: apps/cloud-migration-aws
   destination:
     server: https://kubernetes.default.svc
     namespace: cloud-migration

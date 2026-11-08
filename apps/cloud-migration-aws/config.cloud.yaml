@@ -23,7 +23,7 @@ targets:
     kind: rds
   gcp:
     host: 127.0.0.1
-    dbname: migration_demo_aws2gcp
+    dbname: REPLACE_WITH_NEW_EMPTY_TARGET_DB
     sslmode: disable
     users:
       admin:
