@@ -15,3 +15,27 @@ resources:
   - policy-roundtrip.yaml
   - sample-app.yaml
   - traffic-bot.yaml
+# 2026-11-08 전체 이전 반복 시연 활성화: argocd-repeat-demo-onprem 의 패치를 기본 그래프에 적용한다.
+# 러너는 full config(config.full-aws.yaml)·DEMO_RESET_ENABLED, 봇·접수는 supervisor 로 뜬다. 되돌리려면 이 patches 블록을 지운다.
+patches:
+  - target:
+      kind: Application
+      name: live-db-cutover
+    patch: |-
+      - op: replace
+        path: /spec/source/path
+        value: apps/live-db-cutover-repeat-demo
+  - target:
+      kind: Application
+      name: durable-ingress
+    patch: |-
+      - op: replace
+        path: /spec/source/path
+        value: apps/durable-ingress-repeat-demo
+  - target:
+      kind: Application
+      name: traffic-bot
+    patch: |-
+      - op: replace
+        path: /spec/source/path
+        value: apps/traffic-bot-repeat-demo
