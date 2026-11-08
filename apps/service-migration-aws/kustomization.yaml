@@ -5,6 +5,7 @@ resources:
   - receipt.yaml
   - redis.yaml
   - networkpolicy.yaml
+  - external-secrets.yaml
 images:
   - name: docker.io/kty1021/sample-app
     # Published main artifact shared with the source receipt and EKS application.

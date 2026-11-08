@@ -4,5 +4,6 @@ kind: Kustomization
 resources:
   - sample-app-aws.yaml
   - aws-migration/external-secrets-sample-app.yaml
+  - aws-migration/external-secrets-service-migration.yaml
   - aws-migration/cloud-migration.yaml
   - aws-migration/service-migration.yaml
