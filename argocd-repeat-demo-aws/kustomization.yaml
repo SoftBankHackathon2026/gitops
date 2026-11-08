@@ -1,0 +1,13 @@
+# Opt-in only. Do not select before images, Secret delivery and TLS are ready.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../argocd-full-service
+patches:
+  - target:
+      kind: Application
+      name: service-migration-aws
+    patch: |-
+      - op: replace
+        path: /spec/source/path
+        value: apps/service-migration-repeat-demo

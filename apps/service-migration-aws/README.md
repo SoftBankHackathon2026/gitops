@@ -161,7 +161,8 @@ Python 테스트는 PyYAML과 kubectl을 사용한다. 서버·Secret·DB에 접
 - 현재 온프렘 접수의 writer는 `aws_db`이며, 실제 SELECT 결과 온프렘
   `migration_demo_return` 100건/앱 INSERT 금지, AWS `migration_demo` 1,083건/INSERT 허용이었다.
   `onprem_to_aws_004`도 COMPLETED다. 이 상태에서 신규 온프렘→AWS DB 복제를 시작하거나
-  DB를 비워서는 안 된다. 기존 AWS 데이터를 보존한 앱·접수 인계와 새 DB 데모 중 범위 확정이 먼저다.
+  DB를 무조건 비워서는 안 된다. 이후 사용자가 새 반복 시연을 요청했으므로,
+  기존 데이터 아카이브를 남기는 전용 reset 명령의 범위로 준비하고 있다.
 - AWS `service-receipt`와 `service-redis`는 replicas=0이다. AWS 앱은 기존 버전이며
   root는 아직 `argocd`, 앱 source는 `runtime/aws`를 사용한다.
 - 온프렘 `service-migration-auth`는 없다. AWS 새 namespace의 Secret 조회 권한도 없어
@@ -175,3 +176,14 @@ Python 테스트는 PyYAML과 kubectl을 사용한다. 서버·Secret·DB에 접
 - 원본 접수서비스를 재시작하거나 러너 실행 모드를 바꾸지 않았다. DB/Redis 초기화,
   원본 쓰기 재개, 마이그레이션 재실행도 하지 않았다. 상태 파일에는 과거 CATCHING_UP/
   NEEDS_RECOVERY 작업이 남아 있어 실제 실행 중인지와 복구 소유권도 구분해야 한다.
+
+
+## 반복 시연용 opt-in 그래프
+
+`argocd-repeat-demo-onprem`과 `argocd-repeat-demo-aws`는 반복 초기화 supervisor를
+선택한다. 기본 root 경로는 아직 바꾸지 않았다. `REPEAT_DEMO_IMAGE_NOT_PUBLISHED`는
+실제 이미지가 아니며 게시 확인 후 핀을 바꾸기 전에는 이 그래프를 활성화하지 않는다.
+명령과 복구 절차의 정본은 Hackathon `migration/scripts/README.md`다.
+관리 포트는 loopback만 사용하며 새 Service나 공개 제어 주소를 만들지 않는다.
+초기화 중 자식 프로세스가 의도적으로 정지해도 Pod가 재시작하지 않게 liveness만
+supervisor로 변경하고 실제 앱 readiness는 유지한다.

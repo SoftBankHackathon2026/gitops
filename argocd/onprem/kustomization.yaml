@@ -1,0 +1,17 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ai-agent.yaml
+  - db-insert-worker.yaml
+  - demo-traffic-control.yaml
+  - durable-ingress.yaml
+  - live-db-cutover.yaml
+  - migration-cdc.yaml
+  - migration-db-init.yaml
+  - migration-policy.yaml
+  - migration-return.yaml
+  - openbao.yaml
+  - platform-status-proxy.yaml
+  - policy-roundtrip.yaml
+  - sample-app.yaml
+  - traffic-bot.yaml

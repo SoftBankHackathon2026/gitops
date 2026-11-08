@@ -1,0 +1,11 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: live-db-cutover
+spec:
+  template:
+    spec:
+      containers:
+        - name: runner
+          env:
+            - {name: DEMO_RESET_ENABLED, value: 'true'}
