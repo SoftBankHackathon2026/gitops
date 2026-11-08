@@ -1,7 +1,7 @@
 # 데모 트래픽 제어 (설계: Hackathon demo/traffic-control/DESIGN.md). 온프렘 hackathon 네임스페이스 전용.
 # 파드 하나에 화면 서버(server)와 에이전트(agent) 두 컨테이너. 공개 주소는 없고 port-forward 로 연다:
-#   kubectl -n hackathon port-forward svc/demo-traffic-control 5060:80   → http://127.0.0.1:5060
-# server/·agent.py 원본은 Hackathon demo/traffic-control/ (PR #141, 커밋 bda3e70). 고칠 때는 원본과 같이 바꾼다.
+#   kubectl -n hackathon port-forward svc/demo-traffic-control 8095:80   → http://127.0.0.1:8095
+# server/·agent.py 원본은 Hackathon demo/traffic-control/ (브랜치 feat/demo-traffic-control-bot-only, 커밋 0874643). 고칠 때는 원본과 같이 바꾼다.
 # 새 이미지를 만들지 않는다: 서버는 공개 node 이미지, 에이전트는 migration-tools 이미지에 ConfigMap 으로 올린다.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization

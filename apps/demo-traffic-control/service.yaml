@@ -1,5 +1,5 @@
 # 클러스터 내부 주소만. 운영자는 Mac 에서 port-forward 로 연다:
-#   kubectl -n hackathon port-forward svc/demo-traffic-control 5060:80
+#   kubectl -n hackathon port-forward svc/demo-traffic-control 8095:80   (5060 은 Chrome 이 막는다)
 apiVersion: v1
 kind: Service
 metadata:
