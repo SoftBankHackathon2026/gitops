@@ -10,4 +10,4 @@ resources:
 images:
   - name: docker.io/kty1021/sample-app
     # CI(update-gitops)가 커밋 SHA로 자동 갱신한다.
-    newTag: 6ce6e5fe1b39551e80b0904be4e12ac1bfd9ffdf
+    newTag: f850c534313390b0c15239e3c1d27a101da371a4
