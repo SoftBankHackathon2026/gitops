@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: service-migration-aws
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/SoftBankHackathon2026/gitops.git
+    targetRevision: main
+    # Safe base: no running receipt/Redis and no ALB until promoted in Git.
+    path: apps/service-migration-aws
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: service-migration
+  syncPolicy:
+    automated:
+      prune: false
+      selfHeal: true
+    syncOptions: [CreateNamespace=true]

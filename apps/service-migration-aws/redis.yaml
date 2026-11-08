@@ -1,0 +1,84 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: service-redis
+spec:
+  selector:
+    app: service-redis
+  ports:
+  - port: 6379
+    targetPort: 6379
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: service-redis
+spec:
+  serviceName: service-redis
+  replicas: 0
+  selector:
+    matchLabels:
+      app: service-redis
+  template:
+    metadata:
+      labels:
+        app: service-redis
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsUser: 999
+        runAsGroup: 999
+        runAsNonRoot: true
+        fsGroup: 999
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: redis
+        image: redis:7.4-alpine@sha256:c5d34a98396a4775e223c74e929162c35c5a2182901ba26b50ade939941ce14b
+        command:
+        - redis-server
+        args:
+        - --appendonly
+        - 'yes'
+        - --appendfsync
+        - always
+        - --maxmemory
+        - 384mb
+        - --maxmemory-policy
+        - noeviction
+        ports:
+        - containerPort: 6379
+        volumeMounts:
+        - name: data
+          mountPath: /data
+        readinessProbe:
+          exec:
+            command:
+            - redis-cli
+            - ping
+        livenessProbe:
+          exec:
+            command:
+            - redis-cli
+            - ping
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 250m
+            memory: 512Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 2Gi

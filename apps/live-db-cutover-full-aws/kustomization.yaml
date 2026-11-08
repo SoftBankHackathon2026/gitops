@@ -1,0 +1,16 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: hackathon
+resources:
+  - ../live-db-cutover
+configMapGenerator:
+  - name: live-db-cutover-config
+    behavior: merge
+    options: {disableNameSuffixHash: true}
+    files: [config.full-aws.yaml]
+patches:
+  - path: runner.yaml
+images:
+  - name: ghcr.io/softbankhackathon2026/migration-tools
+    # Review commit reference; update to the published main SHA before activation.
+    newTag: 7485d6f5d0d249b73a8fc8e50f382b0f44e790c7

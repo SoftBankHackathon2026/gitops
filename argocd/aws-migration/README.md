@@ -38,3 +38,8 @@ the root/Secret as a way to roll back traffic. CA material here is public.
 Local validation: app and root Kustomize renders; exact chart SHA256 and rendered
 namespace-only RBAC; Terraform four-new-resource plan/apply. These are deployment
 preparations, not evidence of successful EKS traffic or DB return.
+
+온프렘 전체 서비스 이전의 별도 자식 `service-migration-aws`는
+`apps/service-migration-aws`(replicas=0)를 가리킨다. 기존 AWS↔GCP `cloud-migration-aws`와
+서로 다른 namespace/Redis/DNS를 사용한다. 활성화와 onprem overlay 인계는
+[전체 서비스 이전 절차](../../apps/service-migration-aws/README.md)를 따른다.

@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: live-db-cutover
+spec:
+  template:
+    spec:
+      containers:
+        - name: runner
+          env:
+            - {name: MIGRATION_CONFIG, value: /etc/live-cutover/config.full-aws.yaml}
+            - name: EKS_REQUEST_API_TOKEN
+              valueFrom:
+                secretKeyRef: {name: sample-app-eks-api-token, key: token}
+            - name: CLOUD_INGRESS_CONTROL_TOKEN
+              valueFrom:
+                secretKeyRef: {name: service-migration-auth, key: control-token}
+            - name: CLOUD_INGRESS_API_TOKEN
+              valueFrom:
+                secretKeyRef: {name: service-migration-auth, key: api-token}

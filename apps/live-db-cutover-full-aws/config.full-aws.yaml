@@ -1,0 +1,152 @@
+# DB + EKS app + receipt/Redis migration; public DNS remains a later step.
+targets:
+  onprem:
+    host: postgres
+    port: 5432
+    dbname: migration_demo
+    sslmode: require
+    admin_dbname: postgres
+    users:
+      admin:
+        user: oneaction_admin
+        password_env: MIGRATION_ADMIN_PASSWORD
+      app:
+        user: migration_app
+        password_env: MIGRATION_APP_PASSWORD
+      cdc:
+        user: migration_cdc
+        password_env: MIGRATION_CDC_PASSWORD
+      sink:
+        user: migration_sink
+        password_env: MIGRATION_SINK_PASSWORD
+      verify:
+        user: migration_verify
+        password_env: MIGRATION_VERIFY_PASSWORD
+  onprem_return:
+    host: postgres
+    port: 5432
+    dbname: migration_demo_return
+    sslmode: require
+    admin_dbname: postgres
+    users:
+      admin:
+        user: oneaction_admin
+        password_env: MIGRATION_ADMIN_PASSWORD
+      app:
+        user: migration_app
+        password_env: MIGRATION_APP_PASSWORD
+      cdc:
+        user: migration_cdc
+        password_env: MIGRATION_CDC_PASSWORD
+      sink:
+        user: migration_sink
+        password_env: MIGRATION_SINK_PASSWORD
+      verify:
+        user: migration_verify
+        password_env: MIGRATION_VERIFY_PASSWORD
+  rehearsal:
+    host: postgres
+    port: 5432
+    dbname: migration_demo_rehearsal
+    sslmode: require
+    admin_dbname: postgres
+    kind: self_managed
+    users:
+      admin:
+        user: oneaction_admin
+        password_env: MIGRATION_ADMIN_PASSWORD
+      app:
+        user: migration_app
+        password_env: MIGRATION_APP_PASSWORD
+      cdc:
+        user: migration_cdc
+        password_env: MIGRATION_CDC_PASSWORD
+      sink:
+        user: migration_sink
+        password_env: MIGRATION_SINK_PASSWORD
+      verify:
+        user: migration_verify
+        password_env: MIGRATION_VERIFY_PASSWORD
+  aws:
+    host: oneaction-review-db.cdb6j7l51obe.ap-northeast-2.rds.amazonaws.com
+    kind: rds
+    port: 5432
+    dbname: migration_demo
+    sslmode: require
+    admin_dbname: postgres
+    users:
+      admin:
+        user: oneaction_admin
+        password_env: MIGRATION_AWS_ADMIN_PASSWORD
+      app:
+        user: migration_app
+        password_env: MIGRATION_APP_PASSWORD
+      cdc:
+        user: migration_cdc
+        password_env: MIGRATION_CDC_PASSWORD
+      sink:
+        user: migration_sink
+        password_env: MIGRATION_SINK_PASSWORD
+      verify:
+        user: migration_verify
+        password_env: MIGRATION_VERIFY_PASSWORD
+job:
+  job_id: full_service_forward_001
+  source: onprem_return
+  target: aws
+  table: public.migration_demo
+  live_phase_before: onprem_return_live
+  live_phase_after: aws_live
+kafka:
+  bootstrap_servers: kafka:9092
+  connect_url: http://migration-connect:8083
+  secrets_file: /opt/kafka/secrets/migration.properties
+bot:
+  control_url: http://traffic-bot-control:9091
+  token_env: BOT_CONTROL_TOKEN
+  request_endpoint: http://durable-ingress.hackathon.svc.cluster.local/api/requests
+  timeout_seconds: 15
+cutover:
+  state_dir: /var/lib/worker
+  min_live_rows_after_snapshot: 100
+  min_rows_after_switch: 100
+  offset_stable_seconds: 10
+  poll_interval_seconds: 5
+  stage_timeout_seconds: 1800
+ingress:
+  control_url: http://durable-ingress-control.hackathon.svc.cluster.local:9092
+  token_env: INGRESS_CONTROL_TOKEN
+  targets:
+    onprem_return: onprem
+    aws: aws_eks
+    rehearsal: rehearsal
+  app_checks:
+    onprem_return:
+      url: http://sample-app.hackathon.svc.cluster.local
+      environment: onprem
+      database: migration_demo_return
+    aws:
+      url: https://sample-app.hackerthon.yubin.dev
+      environment: aws
+      database: migration_demo
+      token_env: EKS_REQUEST_API_TOKEN
+    rehearsal:
+      url: http://sample-app-rehearsal.hackathon.svc.cluster.local
+      environment: rehearsal
+      database: migration_demo_rehearsal
+full_migration:
+  destination_control_url: https://service-migration.hackerthon.yubin.dev/control
+  destination_token_env: CLOUD_INGRESS_CONTROL_TOKEN
+  destination_app_version: f01afbb586910782921de3b1c6a332a5a445ed70
+  destination_target: aws_eks
+  forward_target: aws_receipt
+  timeout_seconds: 30
+  destination_receipt_url: https://service-migration.hackerthon.yubin.dev
+  destination_api_token_env: CLOUD_INGRESS_API_TOKEN
+platform_data_targets:
+  onprem: onprem_return
+  aws: aws
+platform_apps:
+- sample-app
+- hackathon/Deployment/sample-app
+- hackathon/Rollout/sample-app
