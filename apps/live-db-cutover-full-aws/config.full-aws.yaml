@@ -137,7 +137,7 @@ ingress:
 full_migration:
   destination_control_url: https://service-migration.hackerthon.yubin.dev/control
   destination_token_env: CLOUD_INGRESS_CONTROL_TOKEN
-  destination_app_version: 8313bcf696306994d0daeb64ac8a7b0f2ca29489
+  destination_app_version: 7137166ec0f21e60190bcefc136340975057decc
   destination_target: aws_eks
   forward_target: aws_receipt
   timeout_seconds: 30

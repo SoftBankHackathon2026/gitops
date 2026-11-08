@@ -7,6 +7,6 @@ resources:
   - networkpolicy.yaml
 images:
   - name: docker.io/kty1021/sample-app
-    # sample-app PR #9 merge (control API bind/token/port env). Rollout restarts the
-    # ingress paused: merge only when no cutover job is running, then POST /resume.
-    newTag: 363eeb9298c1cee74d0cbc9dd5d4fb4b172b0c2e
+    # sample-app PR #15: startup/stop race fixed. Rollout restarts the
+    # ingress paused: preserve the existing target and restore its prior mode.
+    newTag: 7137166ec0f21e60190bcefc136340975057decc

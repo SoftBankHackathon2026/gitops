@@ -32,7 +32,7 @@ DB-only 경로 `aws_db`(온프렘 앱→RDS)가 아니라 `aws_eks`를 선택한
 
 | 경로 | 역할 | 기본 적용 |
 |---|---|---|
-| `apps/sample-app/runtime/full-aws` | 동일 신규 앱 이미지로 EKS 준비 | 명시 활성화 때 선택 |
+| `apps/sample-app/runtime/full-aws` | 동일 신규 앱 이미지로 EKS 준비 | 현재 AWS 앱에서 선택 |
 | `argocd-full-service` | EKS 앱 + AWS receipt의 활성화 그래프 | 기본 root에서 선택하지 않음 |
 | `apps/service-migration-aws` | AWS 접수서비스·Redis·NetworkPolicy | replicas=0, ALB 없음 |
 | `apps/service-migration-aws-active` | AWS 준비 환경 | 명시 승격 때 replicas=1 + HTTPS ALB |
@@ -50,11 +50,11 @@ DB-only 경로 `aws_db`(온프렘 앱→RDS)가 아니라 `aws_eks`를 선택한
 
 | 사용처 | 게시된 이미지 태그 | 확인한 manifest digest |
 |---|---|---|
-| 원본/대상 접수서비스·EKS 앱 | `docker.io/kty1021/sample-app:8313bcf696306994d0daeb64ac8a7b0f2ca29489` | `sha256:8872fd812e4eb11294d8fb06d9776967e2ab7096a19e515754a408f337d1a76a` |
-| full 러너 | `ghcr.io/softbankhackathon2026/migration-tools:a544b23a24d41180df3f5d3830190fd42768b1c1` | `sha256:bdb6ce07a303f24ad136498ea7ca8a6707b865dd70f291582a64cf2135e3c9d6` |
+| 원본/대상 접수서비스·EKS 앱 | `docker.io/kty1021/sample-app:7137166ec0f21e60190bcefc136340975057decc` | `sha256:5a5f886e4501574c5d8eefefc6dfcd3af1fe737720b3bf7ddad853d3b908d632` |
+| full 러너 | `ghcr.io/softbankhackathon2026/migration-tools:251db8c6d2f71fdbde6d0b557c837cd178d1bf51` | `sha256:afe0881a9a2c0fd0545d08efa0d1b26f8d464a611d456642793635ca0997c54b` |
 
-빌드 근거: [sample-app main CI](https://github.com/SoftBankHackathon2026/sample-app/actions/runs/42434508786),
-[runner main CI](https://github.com/SoftBankHackathon2026/Hackathon/actions/runs/42439933586).
+빌드 근거: [sample-app main CI](https://github.com/SoftBankHackathon2026/sample-app/actions/runs/42442882959),
+[runner main CI](https://github.com/SoftBankHackathon2026/Hackathon/actions/runs/42442880200).
 접수서비스 2개와 EKS 앱 이미지·버전 selector·`destination_app_version`은 같은 sample-app SHA다.
 게시 확인은 Secret·TLS·실제 통합 시험 완료를 의미하지 않는다.
 canonical `fleet_reporter.py` 동기화는 기본 러너 ConfigMap 해시도 바꾸므로 GitOps 머지/
@@ -181,9 +181,20 @@ Python 테스트는 PyYAML과 kubectl을 사용한다. 서버·Secret·DB에 접
 ## 반복 시연용 opt-in 그래프
 
 `argocd-repeat-demo-onprem`과 `argocd-repeat-demo-aws`는 반복 초기화 supervisor를
-선택한다. 기본 root 경로는 아직 바꾸지 않았다. `REPEAT_DEMO_IMAGE_NOT_PUBLISHED`는
-실제 이미지가 아니며 게시 확인 후 핀을 바꾸기 전에는 이 그래프를 활성화하지 않는다.
+선택한다. 반복 시연 root 경로는 아직 선택하지 않았다. 이미지 placeholder는 게시 확인된
+위 SHA로 교체했다. 양쪽 Secret 공급·AWS 접수 TLS 준비가 끝난 뒤 선택한다.
 명령과 복구 절차의 정본은 Hackathon `migration/scripts/README.md`다.
 관리 포트는 loopback만 사용하며 새 Service나 공개 제어 주소를 만들지 않는다.
 초기화 중 자식 프로세스가 의도적으로 정지해도 Pod가 재시작하지 않게 liveness만
 supervisor로 변경하고 실제 앱 readiness는 유지한다.
+
+
+## 2026-11-08 게시 이미지 갱신
+
+sample-app PR #15와 Hackathon PR #169의 main CI 성공 및 registry manifest를 확인했다.
+온프렘 기본 봇·접수·러너 핀도 같은 새 버전으로 갱신한다. AWS 앱 Application은
+`runtime/full-aws`를 선택해 기존 Secret·RDS CA·TLS를 유지하며 같은 Docker Hub
+아티팩트를 배포한다. AWS 접수·Redis는 기본 replicas=0, 반복 시연 root는 미선택이다.
+이 이미지 갱신은 DB 초기화나 전체 이전 실행을 시작하지 않는다.
+접수 프로세스 재시작 후에는 배포 전 target·epoch·mode를 확인해 같은 target에서만
+기존 전달 상태를 복원한다. 새 migration이나 writer 전환을 자동 수행하지 않는다.

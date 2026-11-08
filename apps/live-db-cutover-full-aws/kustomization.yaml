@@ -13,4 +13,4 @@ patches:
 images:
   - name: ghcr.io/softbankhackathon2026/migration-tools
     # Published main build containing the full-service handoff runner.
-    newTag: a544b23a24d41180df3f5d3830190fd42768b1c1
+    newTag: 251db8c6d2f71fdbde6d0b557c837cd178d1bf51

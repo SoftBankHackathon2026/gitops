@@ -7,5 +7,5 @@ patches:
   - path: supervisor.yaml
 images:
   - name: docker.io/kty1021/sample-app
-    # Replace only after the repeat-demo image is published and verified.
-    newTag: REPEAT_DEMO_IMAGE_NOT_PUBLISHED
+    # Published main image; amd64 and arm64 manifests verified.
+    newTag: 7137166ec0f21e60190bcefc136340975057decc

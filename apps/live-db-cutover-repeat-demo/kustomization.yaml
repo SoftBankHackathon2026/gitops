@@ -11,4 +11,4 @@ patches:
   - path: runner.yaml
 images:
   - name: ghcr.io/softbankhackathon2026/migration-tools
-    newTag: REPEAT_DEMO_IMAGE_NOT_PUBLISHED
+    newTag: 251db8c6d2f71fdbde6d0b557c837cd178d1bf51
