@@ -11,4 +11,4 @@ resources:
   - control-service.yaml
 images:
   - name: docker.io/kty1021/sample-app
-    newTag: beaea996a599e1862bddd0163a62c508d5f6c21e
+    newTag: f850c534313390b0c15239e3c1d27a101da371a4
