@@ -1,14 +1,14 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: demo-traffic-agent
+  name: demo-traffic-control
   namespace: argocd
 spec:
   project: hackathon
   source:
     repoURL: https://github.com/SoftBankHackathon2026/gitops.git
     targetRevision: main
-    path: apps/demo-traffic-agent
+    path: apps/demo-traffic-control
   destination:
     server: https://kubernetes.default.svc
     namespace: hackathon
