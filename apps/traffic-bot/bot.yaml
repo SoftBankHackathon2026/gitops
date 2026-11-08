@@ -48,11 +48,13 @@ spec:
                   name: traffic-bot-target
                   key: base-url
             # 2026-11-08 커밋 여부 미확인(unknown) 요청이 남은 원장은 /data/ledger 에 보관하고 새 원장으로 시작한다.
+            # 2026-11-08 10:31 두 번째 원장(/data/ledger-20261108)도 보관한다. 쓰기가 닫힌 DB 앞에서 접수만 된 56건을
+            # 운영자가 접수 큐에서 지웠기 때문에, 그 장부에는 끝나지 않는 처리 중 56건이 남는다.
             - name: BOT_LEDGER_DIR
-              value: /data/ledger-20261108
+              value: /data/ledger-20261108-2
             # 팀 INSERT 워커의 forward_NNN·return_NNN 과 겹치지 않게 한다. ledger 를 잃었으면 새 run_id 로 시작한다.
             - name: BOT_RUN_ID
-              value: ghost_bot_sqlite_20261108
+              value: ghost_bot_sqlite_20261108_2
             # 새 원장은 자동 생성하지 않는다. 러너가 예산을 정해 시작하고 완료 후 정지한다.
             # 기존 원장의 영속 생성 상태는 새 이미지가 복구한다.
             - name: BOT_GENERATION
