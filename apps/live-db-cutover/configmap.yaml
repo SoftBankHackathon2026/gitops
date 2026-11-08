@@ -108,6 +108,11 @@ data:
             user: migration_verify
             password_env: MIGRATION_VERIFY_PASSWORD
 
+    # 화면에서 만든 작업의 환경 ID를 러너 DB 대상 이름으로 바꾼다.
+    platform_data_targets:
+      onprem: onprem_return
+      aws: aws
+
     job:
       job_id: bot_forward_001                       # 새 봇 제어 흐름: 과거 COMPLETED job_id 재사용 금지
       source: onprem_return            # 2026-11-06 귀환 뒤 실제 라이브 DB (migration_demo_return)
