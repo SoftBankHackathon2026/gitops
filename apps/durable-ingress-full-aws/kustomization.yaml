@@ -8,4 +8,4 @@ patches:
 images:
   - name: docker.io/kty1021/sample-app
     # Same published artifact as the destination receipt and EKS application.
-    newTag: f01afbb586910782921de3b1c6a332a5a445ed70
+    newTag: 8313bcf696306994d0daeb64ac8a7b0f2ca29489

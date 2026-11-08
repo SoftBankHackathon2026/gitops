@@ -45,10 +45,18 @@ DB-only 경로 `aws_db`(온프렘 앱→RDS)가 아니라 `aws_eks`를 선택한
 접근하기 위한 준비 주소다. 기존 사용자가 접속하는 도메인 레코드를 바꾸는 작업과 다르다.
 `full_migration` 설정에는 공개 경로를 바꾸는 `traffic:` 절이 없다.
 
-이미지 핀은 새 handoff/runner 코드의 **게시된 커밋 이미지**로 맞춘 뒤 활성화한다.
-소스 커밋이 존재하는 것과 registry에 이미지가 게시된 것은 다르다. 이 PR의 핀은
-코드 리뷰를 위한 feature commit 참조이며, 코드 PR 머지 후 main CI가 실제 게시한 SHA로
-세 이미지·버전 selector·`destination_app_version`을 함께 갱신하기 전에는 활성화하지 않는다.
+이미지 핀은 2026-11-08 registry manifest 조회로 게시를 확인한 main 빌드다.
+소스 커밋이 존재하는 것과 registry에 이미지가 게시된 것은 다르므로 이후 갱신에도 게시 확인이 필요하다.
+
+| 사용처 | 게시된 이미지 태그 | 확인한 manifest digest |
+|---|---|---|
+| 원본/대상 접수서비스·EKS 앱 | `docker.io/kty1021/sample-app:8313bcf696306994d0daeb64ac8a7b0f2ca29489` | `sha256:8872fd812e4eb11294d8fb06d9776967e2ab7096a19e515754a408f337d1a76a` |
+| full 러너 | `ghcr.io/softbankhackathon2026/migration-tools:f67bc776a37a9e10da097e53f45a555b3dcbf8de` | `sha256:b55a404c3a806961e01d7b4c18a673201002415ec070330c89eb8d0e9b304b13` |
+
+빌드 근거: [sample-app main CI](https://github.com/SoftBankHackathon2026/sample-app/actions/runs/42434508786),
+[runner main CI](https://github.com/SoftBankHackathon2026/Hackathon/actions/runs/42434857960).
+접수서비스 2개와 EKS 앱 이미지·버전 selector·`destination_app_version`은 같은 sample-app SHA다.
+게시 확인은 Secret·TLS·실제 통합 시험 완료를 의미하지 않는다.
 canonical `fleet_reporter.py` 동기화는 기본 러너 ConfigMap 해시도 바꾸므로 GitOps 머지/
 동기화 전에 기존 전환 작업이 실행 중이지 않은지 확인한다. 상태 PVC는 유지한다.
 source/destination 접수의 시작 명령은 `HANDOFF_PROTOCOL_VERSION=1`을 확인한다.

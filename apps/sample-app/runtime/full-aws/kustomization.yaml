@@ -8,7 +8,7 @@ images:
   - name: 974402993422.dkr.ecr.ap-northeast-2.amazonaws.com/ghost/sample-app
     newName: docker.io/kty1021/sample-app
     # Pin with the published handoff commit and config.destination_app_version.
-    newTag: f01afbb586910782921de3b1c6a332a5a445ed70
+    newTag: 8313bcf696306994d0daeb64ac8a7b0f2ca29489
 patches:
   # The existing canary rollout may keep old replicas temporarily. Select only
   # the requested artifact for this migration's AWS service so a single version
@@ -19,11 +19,11 @@ patches:
     patch: |-
       - op: add
         path: /spec/template/metadata/labels/ghost.dev~1migration-version
-        value: f01afbb586910782921de3b1c6a332a5a445ed70
+        value: 8313bcf696306994d0daeb64ac8a7b0f2ca29489
   - target:
       kind: Service
       name: sample-app
     patch: |-
       - op: add
         path: /spec/selector/ghost.dev~1migration-version
-        value: f01afbb586910782921de3b1c6a332a5a445ed70
+        value: 8313bcf696306994d0daeb64ac8a7b0f2ca29489

@@ -7,5 +7,5 @@ resources:
   - networkpolicy.yaml
 images:
   - name: docker.io/kty1021/sample-app
-    # Replace with the published receipt handoff commit before active promotion.
-    newTag: f01afbb586910782921de3b1c6a332a5a445ed70
+    # Published main artifact shared with the source receipt and EKS application.
+    newTag: 8313bcf696306994d0daeb64ac8a7b0f2ca29489
